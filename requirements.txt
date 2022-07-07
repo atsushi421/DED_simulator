@@ -1,0 +1,9 @@
+###### Requirements without Version Specifiers ######`
+flake8
+mypy
+autopep8
+pytest
+
+
+###### Requirements with Version Specifiers ######`
+
