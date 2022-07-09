@@ -11,19 +11,21 @@ class DAGDivider:
     _temp_dag: nx.DiGraph = None
 
     @staticmethod
-    def divide_dag(
+    def divide(
         dag: DAG
     ) -> List[SubDAG]:
-        sub_dag_list: List[SubDAG] = []
+        sub_dags: List[SubDAG] = []
 
         DAGDivider._temp_dag = nx.DiGraph()
         for timer_i in dag.timer_nodes:
-            DAGDivider._temp_dag.add_node(timer_i)
+            DAGDivider._temp_dag.add_node(
+                timer_i, **dag.raw_dag.nodes[timer_i])
             DAGDivider._search_succs(dag, timer_i)
-            sub_dag_list.append(SubDAG(copy.deepcopy(DAGDivider._temp_dag)))
+            sub_dags.append(
+                SubDAG(copy.deepcopy(DAGDivider._temp_dag)))
             DAGDivider._temp_dag = nx.DiGraph()
 
-        return sub_dag_list
+        return sub_dags
 
     @staticmethod
     def _search_succs(
@@ -31,6 +33,11 @@ class DAGDivider:
         node_i: int
     ) -> None:
         if succ_tri := dag.get_succ_tri(node_i):
-            DAGDivider._temp_dag.add_nodes_from(succ_tri)
             for succ_tri_i in succ_tri:
+                DAGDivider._temp_dag.add_node(
+                    succ_tri_i, **dag.raw_dag.nodes[succ_tri_i])
+                DAGDivider._temp_dag.add_edge(
+                    node_i, succ_tri_i,
+                    **dag.raw_dag.edges[node_i, succ_tri_i]
+                )
                 DAGDivider._search_succs(dag, succ_tri_i)

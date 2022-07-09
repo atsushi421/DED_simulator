@@ -8,3 +8,6 @@ class TestDAG:
         assert not EG.get_succ_tri(4)
         assert EG.get_succ_tri(5) == [6]
         assert not EG.get_succ_tri(6)
+
+    def test_calc_hp(self, EG):
+        assert EG.hp == 300

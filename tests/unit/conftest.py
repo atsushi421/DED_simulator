@@ -9,4 +9,5 @@ from src.dag_reader import DAGReader
 def EG() -> DAG:
     EG = DAGReader._read_dot(
         f'{os.path.dirname(__file__)}/../example_dag.dot')
+
     return EG
