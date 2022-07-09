@@ -2,12 +2,14 @@ import os
 
 import networkx as nx
 
+from src.dag import DAG
+
 
 class DAGReader:
     _supported_ext = ['dot']
 
     @staticmethod
-    def read(filepath: str) -> nx.DiGraph:
+    def read(filepath: str) -> DAG:
         _, ext = os.path.splitext(filepath)
         DAGReader._validate(ext)
 
@@ -15,7 +17,7 @@ class DAGReader:
             return DAGReader._read_dot(filepath)
 
     @staticmethod
-    def _read_dot(filepath: str) -> nx.DiGraph:
+    def _read_dot(filepath: str) -> DAG:
         tmp_dag = nx.drawing.nx_pydot.read_dot(filepath)
         tmp_dag = nx.DiGraph(tmp_dag)
         tmp_dag.remove_node('\\n')
@@ -36,7 +38,7 @@ class DAGReader:
             else:
                 G.edges[int(s), int(t)]['is_update'] = False
 
-        return G
+        return DAG(G)
 
     @staticmethod
     def _validate(ext: str) -> None:

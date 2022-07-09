@@ -15,7 +15,7 @@ class TestDAGReader:
 
     def test_read_dot(self):
         G = DAGReader._read_dot(
-            f'{os.path.dirname(__file__)}/../example_dag.dot')
+            f'{os.path.dirname(__file__)}/../example_dag.dot').raw_dag
 
         assert G.number_of_nodes() == 7
         assert G.number_of_edges() == 6
