@@ -1,4 +1,4 @@
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 from src.dag import DAG
 from src.sub_dag import SubDAG
@@ -11,13 +11,26 @@ class Job:
         job_i: int,
         exec: int,
         rst: int,
-        rft: int
+        rft: int,
+        deadline: Optional[int] = None
     ) -> None:
         self.node_i = node_i
         self.job_i = job_i
         self.exec = exec
         self.rst = rst
         self.rft = rft
+        self.deadline = deadline
+
+    @property
+    def laxity(self):
+        return self._laxity
+
+    @laxity.setter
+    def laxity(
+        self,
+        laxity: Optional[int]
+    ):
+        self._laxity = laxity
 
 
 class JobGenerator:
@@ -27,15 +40,20 @@ class JobGenerator:
         dag: DAG
     ) -> None:
         for sub_dag in dag.sub_dags:
-            sub_dag.num_trigger = int(dag.hp / sub_dag.period)
+            # Set num_trigger
+            sub_dag_num_trigger = int(dag.hp / sub_dag.period)
+            for node_i in sub_dag.nodes:
+                dag.nodes[node_i]['num_trigger'] = sub_dag_num_trigger
 
+            # Initialize variables
             ready_nodes: List[int] = [sub_dag.head]
             finish_nodes: Set[int] = set()
 
+            # Generate jobs
             while ready_nodes:
                 node_i = ready_nodes.pop(0)
                 jobs: List[Job] = []
-                for i in range(sub_dag.num_trigger*2):  # HACK
+                for i in range(sub_dag_num_trigger*2):  # HACK
                     jobs.append(Job(
                         **JobGenerator._get_job_args(sub_dag, node_i, i)))
 
@@ -65,6 +83,9 @@ class JobGenerator:
 
         job_args['rft'] = (job_args['rst'] +
                            sub_dag.nodes[node_i]['exec'])
+
+        if deadline := sub_dag.nodes[node_i].get('deadline'):
+            job_args['deadline'] = (deadline + job_i * sub_dag.period)
 
         return job_args
 

@@ -18,6 +18,8 @@ class TestDAGDivider:
             for node_i in sub_dag.nodes:
                 if period := sub_dag.nodes[node_i].get('period'):
                     assert period == EG.nodes[node_i]['period']
+                if deadline := sub_dag.nodes[node_i].get('deadline'):
+                    assert deadline == EG.nodes[node_i]['deadline']
                 assert (sub_dag.nodes[node_i]['exec']
                         == EG.nodes[node_i]['exec'])
                 assert (sub_dag.nodes[node_i]['is_join']

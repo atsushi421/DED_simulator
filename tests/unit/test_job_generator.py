@@ -1,4 +1,3 @@
-import networkx as nx
 from src.job_generator import JobGenerator
 from src.sub_dag import SubDAG
 
@@ -23,4 +22,7 @@ class TestJobGenerator:
 
     def test_generate(self, EG_divided):
         JobGenerator.generate(EG_divided)
-        # TODO
+
+        for exit_job in EG_divided.sub_dags[3].nodes[6]['jobs']:
+            assert (exit_job.deadline
+                    == EG_divided.nodes[6]['deadline'] * (exit_job.job_i+1))

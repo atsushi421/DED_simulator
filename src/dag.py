@@ -21,18 +21,35 @@ class DAG(DiGraph):
     ):
         self._sub_dags = sub_dags
 
+    @property
+    def jld(self):
+        return self._jld
+
+    @jld.setter
+    def jld(
+        self,
+        jld
+    ):
+        self._jld = jld
+
     def initialize(self) -> None:
         self.timer_nodes = [node_i for node_i in self.nodes
                             if 'period' in self.nodes[node_i].keys()]
         self.update_edges = [(si, ti) for si, ti in self.edges
                              if self.edges[si, ti]['is_update']]
         self.trigger_edges = list(set(self.edges) - set(self.update_edges))
+        self._set_deadline()
         self.hp = self._calc_hp()
+
+    def _set_deadline(self) -> None:
+        max_period = max([self.nodes[node_i]['period']
+                          for node_i in self.timer_nodes])
+        for exit_i in [v for v, d in self.out_degree() if d == 0]:
+            self.nodes[exit_i]['deadline'] = max_period
 
     def _calc_hp(self) -> int:
         periods = [self.nodes[node_i]['period']
                    for node_i in self.timer_nodes]
-
         greatest = max(periods)
         i = 1
         while True:
@@ -49,3 +66,8 @@ class DAG(DiGraph):
     ) -> Optional[List[int]]:
         return [succ_i for succ_i in self.succ[node_i]
                 if (node_i, succ_i) in self.trigger_edges]
+
+    def reflect_jobs_in_dag(self) -> None:
+        for sub_dag in self.sub_dags:
+            for node_i in sub_dag.nodes:
+                self.nodes[node_i]['jobs'] = sub_dag.nodes[node_i]['jobs']
