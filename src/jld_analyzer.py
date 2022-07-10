@@ -63,7 +63,25 @@ class JLDAnalyzer:
         jld: JLD,
         alpha: Optional[float]
     ) -> None:
-        pass
+        def get_timestamp(
+            sub_dag: SubDAG,
+            tail_job: Job
+        ) -> int:
+            return sub_dag.nodes[sub_dag.head]['jobs'][tail_job.job_i].rst
+
+        for sub_dag in dag.sub_dags:
+            for tail_i in sub_dag.tails:
+                for join_i in dag.succ[tail_i]:
+                    join_sg = JLDAnalyzer._get_containing_sub_dag(
+                        dag, join_i)
+                    for tail_job in sub_dag.nodes[tail_i]['jobs']:
+                        for join_job in join_sg.nodes[join_i]['jobs']:
+
+                            if((tail_job.rft+dag.edges[tail_i, join_i]['comm'])
+                               <= join_job.rst and
+                               (join_job.rst-get_timestamp(sub_dag, tail_job))
+                               <= (alpha * sub_dag.period)):
+                                jld.add_succ_job(tail_job, join_job)
 
     @staticmethod
     def _analyze_Igarashi(

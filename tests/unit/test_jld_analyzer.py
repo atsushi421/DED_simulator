@@ -45,42 +45,42 @@ class TestJLDAnalyzer:
         JLDAnalyzer._analyze_Igarashi(EG_job_generated, jld)
         # TODO
 
-        # sub_dag0 = EG_job_generated.sub_dags[0]
-        # sub_dag3 = EG_job_generated.sub_dags[3]
-
-        # for job_i, tail_job in enumerate(sub_dag0.nodes[2]['jobs']):
-        #     if job_i == 0:
-        #         assert (sub_dag3.nodes[5]['jobs'][0]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 1:
-        #         assert (sub_dag3.nodes[5]['jobs'][1]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 2:
-        #         assert (sub_dag3.nodes[5]['jobs'][1]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 3:
-        #         assert (sub_dag3.nodes[5]['jobs'][2]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 4:
-        #         assert (sub_dag3.nodes[5]['jobs'][3]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 5:
-        #         assert (sub_dag3.nodes[5]['jobs'][3]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 6:
-        #         assert (sub_dag3.nodes[5]['jobs'][4]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 7:
-        #         assert (sub_dag3.nodes[5]['jobs'][4]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 8:
-        #         assert (sub_dag3.nodes[5]['jobs'][5]
-        #                 in jld.get_succ_jobs(tail_job))
-        #     if job_i == 9:
-        #         assert (sub_dag3.nodes[5]['jobs'][6]
-        #                 in jld.get_succ_jobs(tail_job))
-
     def test_analyze_Saidi(self, EG_job_generated):
         jld = JLD()
         JLDAnalyzer._analyze_Saidi(EG_job_generated, jld)
         # TODO
+
+    def test_analyze_proposed(self, EG_job_generated):
+        jld = JLD()
+        JLDAnalyzer._analyze_proposed(EG_job_generated, jld, 1.7)
+
+        sub_dag0 = EG_job_generated.sub_dags[0]
+        sub_dag3 = EG_job_generated.sub_dags[3]
+
+        for job_i, tail_job in enumerate(sub_dag0.nodes[2]['jobs']):
+            if job_i == 0:
+                assert (sub_dag3.nodes[5]['jobs'][1]
+                        in jld.get_succ_jobs(tail_job))
+            if job_i == 1:
+                assert not jld.get_succ_jobs(tail_job)
+            if job_i == 2:
+                assert (sub_dag3.nodes[5]['jobs'][2]
+                        in jld.get_succ_jobs(tail_job))
+            if job_i == 3:
+                assert not jld.get_succ_jobs(tail_job)
+            if job_i == 4:
+                assert (sub_dag3.nodes[5]['jobs'][3]
+                        in jld.get_succ_jobs(tail_job))
+            if job_i == 5:
+                assert (sub_dag3.nodes[5]['jobs'][4]
+                        in jld.get_succ_jobs(tail_job))
+            if job_i == 6:
+                assert not jld.get_succ_jobs(tail_job)
+            if job_i == 7:
+                assert (sub_dag3.nodes[5]['jobs'][5]
+                        in jld.get_succ_jobs(tail_job))
+            if job_i == 8:
+                assert not jld.get_succ_jobs(tail_job)
+            if job_i == 9:
+                assert (sub_dag3.nodes[5]['jobs'][6]
+                        in jld.get_succ_jobs(tail_job))
