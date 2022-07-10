@@ -22,7 +22,7 @@ class DAGReader:
         tmp_dag = nx.DiGraph(tmp_dag)
         tmp_dag.remove_node('\\n')
 
-        G = nx.DiGraph()
+        G = DAG()
         for node_i in tmp_dag.nodes:
             G.add_node(int(node_i), exec=int(tmp_dag.nodes[node_i]['exec']))
             if period := tmp_dag.nodes[node_i].get('period'):
@@ -38,7 +38,9 @@ class DAGReader:
             else:
                 G.edges[int(s), int(t)]['is_update'] = False
 
-        return DAG(G)
+        G.initialize()
+
+        return G
 
     @staticmethod
     def _validate(ext: str) -> None:

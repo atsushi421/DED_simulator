@@ -39,7 +39,7 @@ class JobGenerator:
                     jobs.append(Job(
                         **JobGenerator._get_job_args(sub_dag, node_i, i)))
 
-                sub_dag.dag.nodes[node_i]['jobs'] = jobs
+                sub_dag.nodes[node_i]['jobs'] = jobs
                 finish_nodes.add(node_i)
                 ready_nodes += JobGenerator._get_ready_nodes(
                     sub_dag, finish_nodes, node_i)
@@ -52,19 +52,19 @@ class JobGenerator:
     ) -> Dict:
         job_args = {'node_i': node_i,
                     'job_i': job_i,
-                    'exec': sub_dag.dag.nodes[node_i]['exec']}
+                    'exec': sub_dag.nodes[node_i]['exec']}
 
         if node_i == sub_dag.head:
             job_args['rst'] = sub_dag.period * job_i
         else:
             rst_list: List[int] = []
-            for pred_i in sub_dag.dag.pred[node_i]:
-                rst_list.append(sub_dag.dag.nodes[pred_i]['jobs'][job_i].rft
-                                + sub_dag.dag.edges[pred_i, node_i]['comm'])
+            for pred_i in sub_dag.pred[node_i]:
+                rst_list.append(sub_dag.nodes[pred_i]['jobs'][job_i].rft
+                                + sub_dag.edges[pred_i, node_i]['comm'])
             job_args['rst'] = max(rst_list)
 
         job_args['rft'] = (job_args['rst'] +
-                           sub_dag.dag.nodes[node_i]['exec'])
+                           sub_dag.nodes[node_i]['exec'])
 
         return job_args
 
@@ -75,8 +75,8 @@ class JobGenerator:
         finish_node_i: int
     ) -> List[int]:
         ready_nodes = []
-        for succ_i in sub_dag.dag.succ[finish_node_i]:
-            if set(sub_dag.dag.pred[succ_i]) <= finish_nodes:
+        for succ_i in sub_dag.succ[finish_node_i]:
+            if set(sub_dag.pred[succ_i]) <= finish_nodes:
                 ready_nodes.append(succ_i)
 
         return ready_nodes
