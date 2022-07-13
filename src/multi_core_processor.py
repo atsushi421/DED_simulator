@@ -10,8 +10,10 @@ from src.job_generator import Job
 class Core:
 
     def __init__(
-        self
+        self,
+        core_i: int
     ) -> None:
+        self.core_i = core_i
         self.proc_job: Optional[Job] = None
         self.remain = 0
 
@@ -44,7 +46,7 @@ class MultiCoreProcessor:
         self,
         num_cores: int
     ) -> None:
-        self.cores = [Core() for _ in range(num_cores)]
+        self.cores = [Core(i) for i in range(num_cores)]
 
     def process(
         self

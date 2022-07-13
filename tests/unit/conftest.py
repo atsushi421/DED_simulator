@@ -74,6 +74,6 @@ def EG_scheduler():
     LaxityCalculator.calculate(EG_calculated)
 
     processor = MultiCoreProcessor(4)
-    EG_scheduler = Scheduler('LLF', EG_calculated, processor, 1.7)
+    EG_scheduler = Scheduler('LLF', EG_calculated, processor, 1.7, True)
 
     return EG_scheduler

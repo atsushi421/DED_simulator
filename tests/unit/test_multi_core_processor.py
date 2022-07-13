@@ -12,7 +12,7 @@ class TestCore:
         job_mock1 = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock1, 'exec', 20)
 
-        core = Core()
+        core = Core(0)
         core.allocate(job_mock0)
         assert core.remain == 10
 
@@ -24,7 +24,7 @@ class TestCore:
         job_mock = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock, 'exec', 5)
 
-        core = Core()
+        core = Core(0)
         core.allocate(job_mock)
         for _ in range(5):
             finish_job = core.process()

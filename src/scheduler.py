@@ -1,5 +1,8 @@
 import copy
-from typing import List
+import json
+from typing import Dict, List
+
+import yaml
 
 from src.dag import DAG
 from src.job_generator import Job
@@ -7,6 +10,77 @@ from src.multi_core_processor import MultiCoreProcessor
 from src.sub_dag import SubDAG
 
 NO_LAXITY_CRITERIA = 9000000000000000000  # HACK
+
+
+class ScheduleLogger:
+
+    def __init__(
+        self,
+        num_cores: int
+    ) -> None:
+        self._dm_log: Dict[str, Dict] = {}
+        self._sched_log = {'makespan': 0,
+                           'coreNum': num_cores,
+                           'taskSet': []}
+
+    def write_makespan(
+        self,
+        makespan: int
+    ) -> None:
+        self._sched_log['makespan'] = makespan
+
+    def write_allocate(
+        self,
+        core_i: int,
+        job: Job,
+        start_time: int,
+        finish_time: int
+    ) -> None:
+        self._sched_log['taskSet'].append(
+            {"coreID": core_i,
+             "taskID": job.node_i,
+             "jobID": job.job_i,
+             "releaseTime": job.tri_time,
+             "deadline": job.deadline,
+             "startTime": start_time,
+             "finishTime": finish_time}
+        )
+
+    def write_early_detection(
+        self,
+        detection_time: int,
+        job: Job
+    ) -> None:
+        self._dm_log['early_detection'] = {
+            'detection_time': detection_time,
+            'node_i': job.node_i,
+            'job_i': job.job_i
+        }
+
+    def write_deadline_miss(
+        self,
+        deadline_miss_time: int,
+        job: Job
+    ) -> None:
+        self._dm_log['deadline_miss'] = {
+            'detection_time': deadline_miss_time,
+            'node_i': job.node_i,
+            'job_i': job.job_i
+        }
+
+    def dump_sched_log(
+        self,
+        dest_path: str
+    ) -> None:
+        with open(dest_path, 'w') as f:
+            json.dump(self._sched_log, f, indent=4)
+
+    def dump_dm_log(
+        self,
+        dest_path: str
+    ) -> None:
+        with open(dest_path, 'w') as f:
+            yaml.dump(self._dm_log, f)
 
 
 class Scheduler:
@@ -17,7 +91,8 @@ class Scheduler:
         algorithm: str,
         dag: DAG,
         processor: MultiCoreProcessor,
-        alpha: float
+        alpha: float,
+        use_sched_logger: bool
     ) -> None:
         self._validate(algorithm)
         self._remove_unnecessary_jobs(dag)
@@ -31,12 +106,14 @@ class Scheduler:
         self._finish_jobs: List[Job] = []
         self._dm_flag = False
         self._current_time = 0
+        self._use_sched_logger = use_sched_logger
+        self._logger = ScheduleLogger(len(self._processor.cores))
 
     def schedule(self) -> None:
         last_job = self._get_last_job()
         while last_job not in self._finish_jobs:
             if self._dm_flag:
-                break  # TODO: deadline miss
+                break
 
             self._update_ready_jobs()
             if not self._ready_jobs or not self._processor.get_idle_core():
@@ -46,17 +123,31 @@ class Scheduler:
             head = self._pop_highest_priority_job()
 
             if not self._early_detection(head):
-                break  # TODO: deadline miss
+                self._logger.write_early_detection(self._current_time, head)
+                break
 
             if head.job_i != 0 and head.is_join and self._check_dfc(head):
                 if (self._dag.exit_i in
                         set(self._get_containing_sub_dag(head).nodes)):
-                    break  # TODO: deadline miss
+                    self._logger.write_deadline_miss(self._current_time, head)
+                    break
                 else:
                     continue
 
             idle_core = self._processor.get_idle_core()
             idle_core.allocate(head)
+            if self._use_sched_logger:
+                self._logger.write_allocate(
+                    idle_core.core_i,
+                    head,
+                    self._current_time,
+                    self._current_time + head.exec
+                )
+
+        self._logger.write_makespan(self._current_time)
+
+    def create_logger(self) -> ScheduleLogger:
+        return self._logger
 
     def _get_last_job(self) -> Job:
         exit_node = self._dag.nodes[self._dag.exit_i]
@@ -142,6 +233,8 @@ class Scheduler:
                 elif (fin_job.node_i == self._dag.exit_i and
                       self._current_time > fin_job.deadline):
                     self._dm_flag = True
+                    self._logger.write_deadline_miss(
+                        self._current_time, fin_job)
 
     def _update_ready_jobs(
         self

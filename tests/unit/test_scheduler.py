@@ -1,9 +1,72 @@
+import os
 import sys
 
 from src.dag import DAG
 from src.job_generator import Job
-from src.scheduler import Scheduler
+from src.scheduler import ScheduleLogger, Scheduler
 from src.sub_dag import SubDAG
+
+
+class TestScheduleLogger:
+
+    def test_write_allocate(self, mocker):
+        job_mock = mocker.Mock(spec=Job)
+        mocker.patch.object(job_mock, 'node_i', 0)
+        mocker.patch.object(job_mock, 'job_i', 0)
+        mocker.patch.object(job_mock, 'tri_time', 0)
+        mocker.patch.object(job_mock, 'deadline', 100)
+
+        logger = ScheduleLogger(4)
+        logger.write_allocate(0, job_mock, 0, 23)
+        assert len(logger._sched_log['taskSet']) == 1
+        assert isinstance(logger._sched_log['taskSet'][0], dict)
+
+    def test_dump_sched_log(self, mocker):
+        job_mock0 = mocker.Mock(spec=Job)
+        mocker.patch.object(job_mock0, 'node_i', 0)
+        mocker.patch.object(job_mock0, 'job_i', 0)
+        mocker.patch.object(job_mock0, 'tri_time', 0)
+        mocker.patch.object(job_mock0, 'deadline', 100)
+        job_mock1 = mocker.Mock(spec=Job)
+        mocker.patch.object(job_mock1, 'node_i', 1)
+        mocker.patch.object(job_mock1, 'job_i', 0)
+        mocker.patch.object(job_mock1, 'tri_time', 10)
+        mocker.patch.object(job_mock1, 'deadline', 100)
+        job_mock2 = mocker.Mock(spec=Job)
+        mocker.patch.object(job_mock2, 'node_i', 2)
+        mocker.patch.object(job_mock2, 'job_i', 0)
+        mocker.patch.object(job_mock2, 'tri_time', 30)
+        mocker.patch.object(job_mock2, 'deadline', 100)
+
+        logger = ScheduleLogger(4)
+        logger.write_allocate(0, job_mock0, 0, 23)
+        logger.write_allocate(1, job_mock1, 10, 42)
+        logger.write_allocate(2, job_mock2, 30, 64)
+        logger.write_makespan(64)
+        logger.dump_sched_log(
+            f'{os.path.dirname(__file__)}/../test_sched_log.json')
+        assert os.path.exists(
+            f'{os.path.dirname(__file__)}/../test_sched_log.json')
+        assert os.path.isfile(
+            f'{os.path.dirname(__file__)}/../test_sched_log.json')
+
+    def test_dump_dm_log(self, mocker):
+        job_mock0 = mocker.Mock(spec=Job)
+        mocker.patch.object(job_mock0, 'node_i', 0)
+        mocker.patch.object(job_mock0, 'job_i', 0)
+        job_mock1 = mocker.Mock(spec=Job)
+        mocker.patch.object(job_mock1, 'node_i', 1)
+        mocker.patch.object(job_mock1, 'job_i', 0)
+
+        logger = ScheduleLogger(4)
+        logger.write_early_detection(10, job_mock0)
+        logger.write_deadline_miss(20, job_mock1)
+        logger.dump_dm_log(
+            f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
+        assert os.path.exists(
+            f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
+        assert os.path.isfile(
+            f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
 
 
 class TestScheduler:
