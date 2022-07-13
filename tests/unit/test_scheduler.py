@@ -95,17 +95,7 @@ class TestScheduler:
     #         if node_i == 6:
     #             assert len(EG_calculated.nodes[node_i]['jobs']) == 6
 
-    def test_schedule(self):
-        EG = DAGReader._read_dot(
-            f'{os.path.dirname(__file__)}/../example_dag.dot')
-        EG.sub_dags = DAGDivider.divide(EG)
-        JobGenerator.generate(EG)
-        EG.jld = JLDAnalyzer.analyze(EG, 'proposed', 2.0)
-        EG.reflect_jobs_in_dag()
-        LaxityCalculator.calculate(EG)
-
-        processor = MultiCoreProcessor(8)
-        EG_scheduler = Scheduler('LLF', EG, processor, 2.0, True)
+    def test_schedule(self, EG_scheduler):
         EG_scheduler.schedule()
         logger = EG_scheduler.create_logger()
         logger.dump_sched_log(
