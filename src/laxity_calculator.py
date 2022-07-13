@@ -30,5 +30,5 @@ class LaxityCalculator:
             return job.laxity
 
         for sub_dag in dag.sub_dags:
-            for job_i in range(dag.nodes[sub_dag.head]['num_trigger']):
+            for job_i in range(dag.nodes[sub_dag.head]['num_trigger']*2):  # HACK
                 recur_calc_laxity(dag.nodes[sub_dag.head]['jobs'][job_i])

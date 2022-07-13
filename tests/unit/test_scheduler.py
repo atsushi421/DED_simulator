@@ -2,7 +2,12 @@ import os
 import sys
 
 from src.dag import DAG
-from src.job_generator import Job
+from src.dag_divider import DAGDivider
+from src.dag_reader import DAGReader
+from src.jld_analyzer import JLDAnalyzer
+from src.job_generator import Job, JobGenerator
+from src.laxity_calculator import LaxityCalculator
+from src.multi_core_processor import MultiCoreProcessor
 from src.scheduler import ScheduleLogger, Scheduler
 from src.sub_dag import SubDAG
 
@@ -60,7 +65,7 @@ class TestScheduleLogger:
 
         logger = ScheduleLogger(4)
         logger.write_early_detection(10, job_mock0)
-        logger.write_deadline_miss(20, job_mock1)
+        logger.write_deadline_miss('e2e deadline', 20, job_mock1)
         logger.dump_dm_log(
             f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
         assert os.path.exists(
@@ -71,32 +76,50 @@ class TestScheduleLogger:
 
 class TestScheduler:
 
-    def test_remove_unnecessary_jobs(self, EG_calculated):
-        Scheduler._remove_unnecessary_jobs(EG_calculated)
+    # def test_remove_unnecessary_jobs(self, EG_calculated):
+    #     Scheduler._remove_unnecessary_jobs(EG_calculated)
 
-        for node_i in EG_calculated.nodes:
-            if node_i == 0:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 10
-            if node_i == 1:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 3
-            if node_i == 2:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 10
-            if node_i == 3:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 3
-            if node_i == 4:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 15
-            if node_i == 5:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 6
-            if node_i == 6:
-                assert len(EG_calculated.nodes[node_i]['jobs']) == 6
+    #     for node_i in EG_calculated.nodes:
+    #         if node_i == 0:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 10
+    #         if node_i == 1:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 3
+    #         if node_i == 2:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 10
+    #         if node_i == 3:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 3
+    #         if node_i == 4:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 15
+    #         if node_i == 5:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 6
+    #         if node_i == 6:
+    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 6
 
-    def test_schedule(self, EG_scheduler):
+    def test_schedule(self):
+        EG = DAGReader._read_dot(
+            f'{os.path.dirname(__file__)}/../example_dag.dot')
+        EG.sub_dags = DAGDivider.divide(EG)
+        JobGenerator.generate(EG)
+        EG.jld = JLDAnalyzer.analyze(EG, 'proposed', 2.0)
+        EG.reflect_jobs_in_dag()
+        LaxityCalculator.calculate(EG)
+
+        processor = MultiCoreProcessor(8)
+        EG_scheduler = Scheduler('LLF', EG, processor, 2.0, True)
         EG_scheduler.schedule()
-
-    def test_get_last_job(self, EG_scheduler):
-        last_job = EG_scheduler._get_last_job()
-        assert last_job.node_i == 6
-        assert last_job.job_i == 5
+        logger = EG_scheduler.create_logger()
+        logger.dump_sched_log(
+            f'{os.path.dirname(__file__)}/../test_sched_log.json')
+        assert os.path.exists(
+            f'{os.path.dirname(__file__)}/../test_sched_log.json')
+        assert os.path.isfile(
+            f'{os.path.dirname(__file__)}/../test_sched_log.json')
+        logger.dump_dm_log(
+            f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
+        assert os.path.exists(
+            f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
+        assert os.path.isfile(
+            f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
 
     def test_get_containing_sub_dag(self, EG_scheduler):
         node0_job = EG_scheduler._dag.nodes[0]['jobs'][0]

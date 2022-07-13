@@ -59,11 +59,13 @@ class ScheduleLogger:
 
     def write_deadline_miss(
         self,
+        reason,
         deadline_miss_time: int,
         job: Job
     ) -> None:
         self._dm_log['deadline_miss'] = {
-            'detection_time': deadline_miss_time,
+            'reason': reason,
+            'deadline_miss_time': deadline_miss_time,
             'node_i': job.node_i,
             'job_i': job.job_i
         }
@@ -95,7 +97,6 @@ class Scheduler:
         use_sched_logger: bool
     ) -> None:
         self._validate(algorithm)
-        self._remove_unnecessary_jobs(dag)
 
         # Initialize variables
         self._algorithm = algorithm
@@ -110,12 +111,12 @@ class Scheduler:
         self._logger = ScheduleLogger(len(self._processor.cores))
 
     def schedule(self) -> None:
-        last_job = self._get_last_job()
-        while last_job not in self._finish_jobs:
+        while self._current_time != self._dag.hp:
             if self._dm_flag:
                 break
 
             self._update_ready_jobs()
+            print(self._ready_jobs)
             if not self._ready_jobs or not self._processor.get_idle_core():
                 self._advance_time()
                 continue
@@ -126,10 +127,12 @@ class Scheduler:
                 self._logger.write_early_detection(self._current_time, head)
                 break
 
-            if head.job_i != 0 and head.is_join and self._check_dfc(head):
+            if (head.job_i != 0 and head.is_join
+                    and not self._check_dfc(head)):
                 if (self._dag.exit_i in
                         set(self._get_containing_sub_dag(head).nodes)):
-                    self._logger.write_deadline_miss(self._current_time, head)
+                    self._logger.write_deadline_miss(
+                        'dfc', self._current_time, head)
                     break
                 else:
                     continue
@@ -149,11 +152,6 @@ class Scheduler:
     def create_logger(self) -> ScheduleLogger:
         return self._logger
 
-    def _get_last_job(self) -> Job:
-        exit_node = self._dag.nodes[self._dag.exit_i]
-
-        return exit_node['jobs'][exit_node['num_trigger']-1]
-
     def _get_containing_sub_dag(
         self,
         job: Job
@@ -172,7 +170,8 @@ class Scheduler:
         def get_timestamp(tail_job: Job) -> int:
             sub_dag = self._get_containing_sub_dag(tail_job)
             for finish_job in reversed(self._finish_jobs):
-                if finish_job.node_i == sub_dag.head:
+                if (finish_job.node_i == sub_dag.head
+                        and finish_job.job_i == tail_job.job_i):
                     timestamp = finish_job.tri_time
 
             return timestamp
@@ -180,8 +179,10 @@ class Scheduler:
         for pred_i in self._dag.pred[head.node_i]:
             for finish_job in reversed(self._finish_jobs):
                 if finish_job.node_i == pred_i:
-                    dfc = (self._alpha
-                           * self._get_containing_sub_dag(finish_job).period)
+                    dfc = int(
+                        self._alpha
+                        * self._get_containing_sub_dag(finish_job).period
+                    )
                     if self._current_time - get_timestamp(finish_job) > dfc:
                         return False
                     else:
@@ -196,9 +197,13 @@ class Scheduler:
         laxity = head.laxity
         if laxity > NO_LAXITY_CRITERIA:
             next_job_i = head.job_i + 1
-            while laxity > NO_LAXITY_CRITERIA:
-                laxity = self._dag.nodes[head.node_i]['jobs'][next_job_i].laxity
-                next_job_i += 1
+            try:
+                while laxity > NO_LAXITY_CRITERIA:
+                    laxity = \
+                        self._dag.nodes[head.node_i]['jobs'][next_job_i].laxity
+                    next_job_i += 1
+            except IndexError:
+                return True
 
         if self._current_time > laxity:
             return False
@@ -225,7 +230,7 @@ class Scheduler:
                 # Trigger successor event-driven nodes
                 if succs := self._dag.get_succ_tri(fin_job.node_i):
                     for succ_i in succs:
-                        self._dag.nodes[succ_i]['jobs'][fin_job.job_i].tri_time = \
+                        self._dag.nodes[succ_i]['jobs'][0].tri_time = \
                             (self._current_time +
                              self._dag.edges[fin_job.node_i, succ_i]['comm'])
 
@@ -234,7 +239,7 @@ class Scheduler:
                       self._current_time > fin_job.deadline):
                     self._dm_flag = True
                     self._logger.write_deadline_miss(
-                        self._current_time, fin_job)
+                        'e2e deadline', self._current_time, fin_job)
 
     def _update_ready_jobs(
         self
@@ -245,13 +250,13 @@ class Scheduler:
                     == self._current_time):
                 self._ready_jobs.append(self._dag.nodes[node_i]['jobs'].pop(0))
 
-    @staticmethod
-    def _remove_unnecessary_jobs(
-        dag: DAG
-    ) -> None:
-        for node_i in dag.nodes:
-            dag.nodes[node_i]['jobs'] = \
-                dag.nodes[node_i]['jobs'][:dag.nodes[node_i]['num_trigger']]
+    # @staticmethod
+    # def _remove_unnecessary_jobs(
+    #     dag: DAG
+    # ) -> None:
+    #     for node_i in dag.nodes:
+    #         dag.nodes[node_i]['jobs'] = \
+    #             dag.nodes[node_i]['jobs'][:dag.nodes[node_i]['num_trigger']]
 
     @staticmethod
     def _validate(

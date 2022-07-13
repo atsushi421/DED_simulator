@@ -73,7 +73,7 @@ def EG_scheduler():
     EG_calculated.reflect_jobs_in_dag()
     LaxityCalculator.calculate(EG_calculated)
 
-    processor = MultiCoreProcessor(4)
+    processor = MultiCoreProcessor(8)
     EG_scheduler = Scheduler('LLF', EG_calculated, processor, 1.7, True)
 
     return EG_scheduler
