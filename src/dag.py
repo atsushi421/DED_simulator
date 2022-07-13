@@ -33,6 +33,7 @@ class DAG(DiGraph):
         self._jld = jld
 
     def initialize(self) -> None:
+        self.exit_i = [v for v, d in self.out_degree() if d == 0][0]
         self.timer_nodes = [node_i for node_i in self.nodes
                             if 'period' in self.nodes[node_i].keys()]
         self.update_edges = [(si, ti) for si, ti in self.edges
@@ -44,8 +45,7 @@ class DAG(DiGraph):
     def _set_deadline(self) -> None:
         max_period = max([self.nodes[node_i]['period']
                           for node_i in self.timer_nodes])
-        for exit_i in [v for v, d in self.out_degree() if d == 0]:
-            self.nodes[exit_i]['deadline'] = max_period
+        self.nodes[self.exit_i]['deadline'] = max_period
 
     def _calc_hp(self) -> int:
         periods = [self.nodes[node_i]['period']

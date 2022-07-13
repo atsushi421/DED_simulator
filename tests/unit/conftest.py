@@ -6,6 +6,9 @@ from src.dag_divider import DAGDivider
 from src.dag_reader import DAGReader
 from src.jld_analyzer import JLDAnalyzer
 from src.job_generator import JobGenerator
+from src.laxity_calculator import LaxityCalculator
+from src.multi_core_processor import MultiCoreProcessor
+from src.scheduler import Scheduler
 
 
 @pytest.fixture
@@ -45,3 +48,32 @@ def EG_analyzed() -> DAG:
     EG_analyzed.reflect_jobs_in_dag()
 
     return EG_analyzed
+
+
+@pytest.fixture
+def EG_calculated() -> DAG:
+    EG_calculated = DAGReader._read_dot(
+        f'{os.path.dirname(__file__)}/../example_dag.dot')
+    EG_calculated.sub_dags = DAGDivider.divide(EG_calculated)
+    JobGenerator.generate(EG_calculated)
+    EG_calculated.jld = JLDAnalyzer.analyze(EG_calculated, 'proposed', 1.7)
+    EG_calculated.reflect_jobs_in_dag()
+    LaxityCalculator.calculate(EG_calculated)
+
+    return EG_calculated
+
+
+@pytest.fixture
+def EG_scheduler():
+    EG_calculated = DAGReader._read_dot(
+        f'{os.path.dirname(__file__)}/../example_dag.dot')
+    EG_calculated.sub_dags = DAGDivider.divide(EG_calculated)
+    JobGenerator.generate(EG_calculated)
+    EG_calculated.jld = JLDAnalyzer.analyze(EG_calculated, 'proposed', 1.7)
+    EG_calculated.reflect_jobs_in_dag()
+    LaxityCalculator.calculate(EG_calculated)
+
+    processor = MultiCoreProcessor(4)
+    EG_scheduler = Scheduler('LLF', EG_calculated, processor, 1.7)
+
+    return EG_scheduler

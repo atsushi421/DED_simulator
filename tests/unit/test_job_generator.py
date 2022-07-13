@@ -23,6 +23,8 @@ class TestJobGenerator:
     def test_generate(self, EG_divided):
         JobGenerator.generate(EG_divided)
 
-        for exit_job in EG_divided.sub_dags[3].nodes[6]['jobs']:
+        sub_dag3 = EG_divided.sub_dags[3]
+        for exit_job in sub_dag3.nodes[6]['jobs']:
             assert (exit_job.deadline
-                    == EG_divided.nodes[6]['deadline'] * (exit_job.job_i+1))
+                    == (EG_divided.nodes[6]['deadline']
+                        + exit_job.job_i * sub_dag3.period))

@@ -1,6 +1,7 @@
 
 
-from typing import Optional
+import copy
+from typing import List, Optional
 
 from src.exceptions import InvalidPreemptionError
 from src.job_generator import Job
@@ -16,11 +17,15 @@ class Core:
 
     def process(
         self
-    ) -> None:
+    ) -> Optional[Job]:
         if self.proc_job:
             self.remain -= 1
             if self.remain == 0:
+                finish_job = copy.deepcopy(self.proc_job)
                 self.proc_job = None
+                return finish_job
+
+        return None
 
     def allocate(
         self,
@@ -43,9 +48,13 @@ class MultiCoreProcessor:
 
     def process(
         self
-    ) -> None:
+    ) -> Optional[List[Job]]:
+        finish_jobs: List[Job] = []
         for core in self.cores:
-            core.process()
+            if finish_job := core.process():
+                finish_jobs.append(finish_job)
+
+        return finish_jobs
 
     def get_idle_core(
         self
