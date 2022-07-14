@@ -71,3 +71,25 @@ class DAG(DiGraph):
         for sub_dag in self.sub_dags:
             for node_i in sub_dag.nodes:
                 self.nodes[node_i]['jobs'] = sub_dag.nodes[node_i]['jobs']
+
+    def get_total_utilization(
+        self
+    ) -> float:
+        total_utilization = 0
+
+        for sub_dag in self.sub_dags:
+            sum_sub_dag_utilization = 0
+            num_trigger = self.nodes[sub_dag.head]['num_trigger']
+
+            for job_i in range(num_trigger):
+                sum_exec = 0
+
+                for node_i in sub_dag.nodes:
+                    sum_exec += sub_dag.nodes[node_i]['jobs'][job_i].exec
+
+                sum_sub_dag_utilization += sum_exec / sub_dag.period
+
+            ave_sub_dag_utilization = sum_sub_dag_utilization / num_trigger
+            total_utilization += ave_sub_dag_utilization
+
+        return total_utilization

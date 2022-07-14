@@ -55,6 +55,11 @@ def option_parser():
         required=False,
         action="store_true",
     )
+    arg_parser.add_argument(
+        "-u", "--calc_utilization",
+        required=False,
+        action="store_true",
+    )
     args = arg_parser.parse_args()
 
     return (
@@ -66,16 +71,20 @@ def option_parser():
         args.num_cores,
         args.sched_algorithm,
         args.write_sched_log,
+        args.calc_utilization
     )
 
 
 if __name__ == "__main__":
-    (dag_path, dest_dir, analyze_method, alpha, jitter_src_path,
-     num_cores, sched_algorithm, write_sched_log) = option_parser()
+    (dag_path, dest_dir, analyze_method, alpha, jitter_src_path, num_cores,
+     sched_algorithm, write_sched_log, calc_utilization) = option_parser()
 
     dag = DAGReader._read_dot(dag_path)
     dag.sub_dags = DAGDivider.divide(dag)
     JobGenerator.generate(dag)
+    if calc_utilization:
+        total_utilization = dag.get_total_utilization()
+
     dag.jld = JLDAnalyzer.analyze(dag, analyze_method, alpha)
     dag.reflect_jobs_in_dag()
     LaxityCalculator.calculate(dag)
@@ -95,6 +104,8 @@ if __name__ == "__main__":
         f'numCores={num_cores}_'
         f'{sched_algorithm}'
     )
+    if calc_utilization:
+        file_name += f'totalUtilization={total_utilization/num_cores}'
     logger = scheduler.create_logger()
     logger.dump_dm_log(f'{dest_dir}/{file_name}.yaml')
     if write_sched_log:
