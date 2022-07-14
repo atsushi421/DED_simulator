@@ -116,7 +116,6 @@ class Scheduler:
                 break
 
             self._update_ready_jobs()
-            print(self._ready_jobs)
             if not self._ready_jobs or not self._processor.get_idle_core():
                 self._advance_time()
                 continue
