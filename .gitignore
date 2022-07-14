@@ -130,3 +130,6 @@ dmypy.json
 
 # Add
 .vscode/
+*.json
+*.yaml
+*.html
