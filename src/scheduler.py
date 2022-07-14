@@ -36,15 +36,16 @@ class ScheduleLogger:
         start_time: int,
         finish_time: int
     ) -> None:
-        self._sched_log['taskSet'].append(
-            {"coreID": core_i,
-             "taskID": job.node_i,
-             "jobID": job.job_i,
-             "releaseTime": job.tri_time,
-             "deadline": job.deadline,
-             "startTime": start_time,
-             "finishTime": finish_time}
-        )
+        job_dict = {"coreID": core_i,
+                    "taskID": job.node_i,
+                    "jobID": job.job_i,
+                    "releaseTime": job.tri_time,
+                    "startTime": start_time,
+                    "finishTime": finish_time}
+        if job.deadline:
+            job_dict["deadline"] = job.deadline
+
+        self._sched_log['taskSet'].append(job_dict)
 
     def write_early_detection(
         self,
