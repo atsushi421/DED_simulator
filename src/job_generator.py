@@ -64,6 +64,13 @@ class Job:
     def exec(self):
         return self._exec
 
+    @exec.setter
+    def exec(
+        self,
+        exec: int
+    ):
+        self._exec = exec
+
     @property
     def laxity(self):
         return self._laxity
