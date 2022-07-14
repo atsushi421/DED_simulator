@@ -82,8 +82,6 @@ if __name__ == "__main__":
     dag = DAGReader._read_dot(dag_path)
     dag.sub_dags = DAGDivider.divide(dag)
     JobGenerator.generate(dag)
-    if calc_utilization:
-        total_utilization = dag.get_total_utilization()
 
     dag.jld = JLDAnalyzer.analyze(dag, analyze_method, alpha)
     dag.reflect_jobs_in_dag()
@@ -91,6 +89,9 @@ if __name__ == "__main__":
 
     if jitter_src_path:
         JitterGenerator.generate_exec_jitter(jitter_src_path, dag)
+    if calc_utilization:
+        total_utilization = dag.get_total_utilization()
+
     processor = MultiCoreProcessor(num_cores)
     scheduler = Scheduler(sched_algorithm, dag,
                           processor, alpha, write_sched_log)
