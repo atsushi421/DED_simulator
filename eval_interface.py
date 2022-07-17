@@ -1,6 +1,5 @@
 import argparse
 import os
-from typing import Tuple, Union
 
 from src.dag_divider import DAGDivider
 from src.dag_reader import DAGReader
@@ -21,7 +20,7 @@ def option_parser():
     )
     arg_parser.add_argument(
         "-d", "--dest_dir",
-        default=f"{os.path.dirname(__file__)}./result",
+        default=f"{os.path.dirname(__file__)}./results",
         type=str
     )
     arg_parser.add_argument(
@@ -107,7 +106,7 @@ if __name__ == "__main__":
         f'{sched_algorithm}_'
     )
     if jitter:
-        file_name += f'jitterFactor={jitter[1]}'
+        file_name += f'jitterFactor={jitter[1]}_'
     if calc_utilization:
         file_name += f'totalUtilization={total_utilization/num_cores}'
     logger = scheduler.create_logger()

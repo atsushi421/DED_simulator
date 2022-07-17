@@ -2,6 +2,7 @@
 networkx
 pydot
 numpy
+ipykernel
 
 ###### Requirements with Version Specifiers ######`
 
