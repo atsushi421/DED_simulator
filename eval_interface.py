@@ -1,5 +1,6 @@
 import argparse
 import os
+from typing import Tuple, Union
 
 from src.dag_divider import DAGDivider
 from src.dag_reader import DAGReader
@@ -27,7 +28,7 @@ def option_parser():
         "-m", "--analyze_method",
         required=True,
         type=str,
-        help="['proposed', 'Igarashi', 'Saidi'] are allowed."
+        choices=['proposed', 'Igarashi', 'Saidi']
     )
     arg_parser.add_argument(
         "--alpha",
@@ -35,9 +36,10 @@ def option_parser():
         type=float
     )
     arg_parser.add_argument(
-        "-j", "--jitter_src_path",
+        "-j", "--jitter",
+        nargs=2,
         required=False,
-        type=str
+        help='arg 1: jitter source path, arg 2: factor'
     )
     arg_parser.add_argument(
         "-c", "--num_cores",
@@ -48,7 +50,7 @@ def option_parser():
         "-a", "--sched_algorithm",
         required=True,
         type=str,
-        help="['EDF', 'LLF'] are allowed."
+        choices=['EDF', 'LLF']
     )
     arg_parser.add_argument(
         "-l", "--write_sched_log",
@@ -67,7 +69,7 @@ def option_parser():
         args.dest_dir,
         args.analyze_method,
         args.alpha,
-        args.jitter_src_path,
+        args.jitter,
         args.num_cores,
         args.sched_algorithm,
         args.write_sched_log,
@@ -76,7 +78,7 @@ def option_parser():
 
 
 if __name__ == "__main__":
-    (dag_path, dest_dir, analyze_method, alpha, jitter_src_path, num_cores,
+    (dag_path, dest_dir, analyze_method, alpha, jitter, num_cores,
      sched_algorithm, write_sched_log, calc_utilization) = option_parser()
 
     dag = DAGReader._read_dot(dag_path)
@@ -87,8 +89,8 @@ if __name__ == "__main__":
     dag.reflect_jobs_in_dag()
     LaxityCalculator.calculate(dag)
 
-    if jitter_src_path:
-        JitterGenerator.generate_exec_jitter(jitter_src_path, dag)
+    if jitter:
+        JitterGenerator.generate_exec_jitter(*jitter, dag)
     if calc_utilization:
         total_utilization = dag.get_total_utilization()
 
@@ -101,10 +103,11 @@ if __name__ == "__main__":
         f'{os.path.splitext(os.path.basename(dag_path))[0]}_'
         f'{analyze_method}_'
         f'alpha={alpha}_'
-        f'jitter={str(isinstance(jitter_src_path, str))}_'
         f'numCores={num_cores}_'
-        f'{sched_algorithm}'
+        f'{sched_algorithm}_'
     )
+    if jitter:
+        file_name += f'jitterFactor={jitter[1]}'
     if calc_utilization:
         file_name += f'totalUtilization={total_utilization/num_cores}'
     logger = scheduler.create_logger()

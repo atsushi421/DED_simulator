@@ -1,19 +1,19 @@
 strict digraph  {
-0 [exec=4,period=100,is_join=False];
-1 [exec=5,period=100,is_join=False];
-2 [exec=2,period=120,is_join=False];
-3 [exec=4,period=60,is_join=False];
-4 [exec=7,period=100,is_join=False];
+0 [exec=4,period=100000,is_join=False];
+1 [exec=5,period=100000,is_join=False];
+2 [exec=2,period=120000,is_join=False];
+3 [exec=4,period=60000,is_join=False];
+4 [exec=7,period=100000,is_join=False];
 5 [exec=3,is_join=False];
 6 [exec=2,is_join=False];
 7 [exec=6,is_join=False];
 8 [exec=4,is_join=True];
 9 [exec=7,is_join=True];
-10 [exec=5,period=25,is_join=False];
+10 [exec=5,period=25000,is_join=False];
 11 [exec=2,is_join=False];
 12 [exec=5,is_join=False];
 13 [exec=53,is_join=True];
-14 [exec=6,period=60,is_join=True];
+14 [exec=6,period=60000,is_join=True];
 15 [exec=3,is_join=False];
 16 [exec=8,is_join=False];
 17 [exec=71,is_join=True];

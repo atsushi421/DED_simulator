@@ -8,6 +8,7 @@ class JitterGenerator:
     @staticmethod
     def generate_exec_jitter(
         jitter_src_path: str,
+        factor: str,
         dag: DAG
     ) -> None:
         with open(jitter_src_path, "r") as f:
@@ -16,4 +17,5 @@ class JitterGenerator:
 
         for node_name, jitter_list in jitter_src['jitter'].items():
             for job in dag.nodes[node_name_dict[node_name]]['jobs']:
-                job.exec = jitter_list[job.job_i % len(jitter_list)]
+                job.exec = (jitter_list[job.job_i % len(jitter_list)]
+                            * float(factor))
