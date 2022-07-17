@@ -81,6 +81,9 @@ if __name__ == "__main__":
      sched_algorithm, write_sched_log, calc_utilization) = option_parser()
 
     dag = DAGReader._read_dot(dag_path)
+    if jitter:
+        jitter_generator = JitterGenerator(*jitter)
+        jitter_generator.set_wcet(dag)
     dag.sub_dags = DAGDivider.divide(dag)
     JobGenerator.generate(dag)
 
@@ -89,7 +92,7 @@ if __name__ == "__main__":
     LaxityCalculator.calculate(dag)
 
     if jitter:
-        JitterGenerator.generate_exec_jitter(*jitter, dag)
+        jitter_generator.generate_exec_jitter(dag)
     if calc_utilization:
         total_utilization = dag.get_total_utilization()
 

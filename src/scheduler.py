@@ -125,7 +125,6 @@ class Scheduler:
 
             if not self._early_detection(head):
                 self._logger.write_early_detection(self._current_time, head)
-                break
 
             if (head.job_i != 0 and head.is_join
                     and not self._check_dfc(head)):

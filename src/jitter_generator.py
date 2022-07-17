@@ -4,18 +4,30 @@ from src.dag import DAG
 
 
 class JitterGenerator:
-
-    @staticmethod
-    def generate_exec_jitter(
+    def __init__(
+        self,
         jitter_src_path: str,
-        factor: str,
-        dag: DAG
+        factor: str
     ) -> None:
         with open(jitter_src_path, "r") as f:
             jitter_src = yaml.safe_load(f)
-        node_name_dict = jitter_src['node_name_dict']
+        self._node_name_dict = jitter_src['node_name_dict']
+        self._jitter_dict = jitter_src['jitter']
+        self._factor = float(factor)
 
-        for node_name, jitter_list in jitter_src['jitter'].items():
-            for job in dag.nodes[node_name_dict[node_name]]['jobs']:
+    def set_wcet(
+        self,
+        dag: DAG
+    ) -> None:
+        for node_name, jitter_list in self._jitter_dict.items():
+            wcet = max(jitter_list)
+            dag.nodes[self._node_name_dict[node_name]]['exec'] = wcet
+
+    def generate_exec_jitter(
+        self,
+        dag: DAG
+    ) -> None:
+        for node_name, jitter_list in self._jitter_dict.items():
+            for job in dag.nodes[self._node_name_dict[node_name]]['jobs']:
                 job.exec = (jitter_list[job.job_i % len(jitter_list)]
-                            * float(factor))
+                            * self._factor)
