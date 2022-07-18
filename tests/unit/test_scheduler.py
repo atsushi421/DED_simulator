@@ -119,7 +119,7 @@ class TestScheduler:
         RS.set_num_trigger()
         jitter_generator = JitterGenerator(
             f'{os.path.dirname(__file__)}/../reference_system_exec_jitter_multi_8core_8192.yaml',
-            "1.0"
+            "1.1"
         )
         jitter_generator.set_wcet(RS)
         JobGenerator.generate(RS)
@@ -250,6 +250,7 @@ class TestScheduler:
         dag.add_edge(1, 2)
         sub_dag0 = SubDAG()
         sub_dag0.add_node(0)
+        sub_dag0.add_node(1, is_join=False)
         sub_dag0.add_edge(0, 1)
         sub_dag0.head = job_mock0.node_i
         sub_dag0.period = 50

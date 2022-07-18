@@ -166,10 +166,22 @@ class Scheduler:
         self,
         head: Job
     ) -> bool:
+        def get_update_ts_node(
+            sub_dag: SubDAG,
+            tail_job: Job
+        ) -> int:
+            node_i = tail_job.node_i
+            while (node_i != sub_dag.head
+                   and not sub_dag.nodes[node_i]['is_join']):
+                node_i = list(sub_dag.pred[node_i])[0]
+
+            return node_i
+
         def get_timestamp(tail_job: Job) -> int:
             sub_dag = self._get_containing_sub_dag(tail_job)
+            update_ts_node = get_update_ts_node(sub_dag, tail_job)
             for finish_job in reversed(self._finish_jobs):
-                if (finish_job.node_i == sub_dag.head
+                if (finish_job.node_i == update_ts_node
                         and finish_job.job_i == tail_job.job_i):
                     timestamp = finish_job.tri_time
 
