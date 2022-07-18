@@ -2,8 +2,14 @@ import os
 import sys
 
 from src.dag import DAG
-from src.job_generator import Job
-from src.scheduler import ScheduleLogger
+from src.dag_divider import DAGDivider
+from src.dag_reader import DAGReader
+from src.jitter_generator import JitterGenerator
+from src.jld_analyzer import JLDAnalyzer
+from src.job_generator import Job, JobGenerator
+from src.laxity_calculator import LaxityCalculator
+from src.multi_core_processor import MultiCoreProcessor
+from src.scheduler import ScheduleLogger, Scheduler
 from src.sub_dag import SubDAG
 
 
@@ -90,7 +96,7 @@ class TestScheduler:
     #         if node_i == 6:
     #             assert len(EG_calculated.nodes[node_i]['jobs']) == 6
 
-    def test_schedule(self, EG_scheduler):
+    def test_schedule_01(self, EG_scheduler):
         EG_scheduler.schedule()
         logger = EG_scheduler.create_logger()
         logger.dump_sched_log(
@@ -105,6 +111,25 @@ class TestScheduler:
             f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
         assert os.path.isfile(
             f'{os.path.dirname(__file__)}/../test_dm_log.yaml')
+
+    def test_schedule_02(self):
+        RS = DAGReader._read_dot(
+            f'{os.path.dirname(__file__)}/../referenceSystem.dot')
+        RS.sub_dags = DAGDivider.divide(RS)
+        RS.set_num_trigger()
+        jitter_generator = JitterGenerator(
+            f'{os.path.dirname(__file__)}/../reference_system_exec_jitter_multi_8core_8192.yaml',
+            "1.2"
+        )
+        jitter_generator.set_wcet(RS)
+        JobGenerator.generate(RS)
+        RS.jld = JLDAnalyzer.analyze(RS, 'proposed', 1.7)
+        RS.reflect_jobs_in_dag()
+        LaxityCalculator.calculate(RS)
+
+        processor = MultiCoreProcessor(8)
+        scheduler = Scheduler('LLF', RS, processor, 1.7, True)
+        scheduler.schedule()
 
     def test_get_containing_sub_dag(self, EG_scheduler):
         node0_job = EG_scheduler._dag.nodes[0]['jobs'][0]

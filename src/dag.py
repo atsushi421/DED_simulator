@@ -67,6 +67,12 @@ class DAG(DiGraph):
         return [succ_i for succ_i in self.succ[node_i]
                 if (node_i, succ_i) in self.trigger_edges]
 
+    def set_num_trigger(self) -> None:
+        for sub_dag in self.sub_dags:
+            sub_dag.num_trigger = int(self.hp / sub_dag.period)
+            for node_i in sub_dag.nodes:
+                self.nodes[node_i]['num_trigger'] = sub_dag.num_trigger
+
     def reflect_jobs_in_dag(self) -> None:
         for sub_dag in self.sub_dags:
             for node_i in sub_dag.nodes:

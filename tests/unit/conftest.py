@@ -24,6 +24,7 @@ def EG_divided() -> DAG:
     EG_divided = DAGReader._read_dot(
         f'{os.path.dirname(__file__)}/../example_dag.dot')
     EG_divided.sub_dags = DAGDivider.divide(EG_divided)
+    EG_divided.set_num_trigger()
 
     return EG_divided
 
@@ -33,6 +34,7 @@ def EG_job_generated() -> DAG:
     EG_job_generated = DAGReader._read_dot(
         f'{os.path.dirname(__file__)}/../example_dag.dot')
     EG_job_generated.sub_dags = DAGDivider.divide(EG_job_generated)
+    EG_job_generated.set_num_trigger()
     JobGenerator.generate(EG_job_generated)
 
     return EG_job_generated
@@ -43,6 +45,7 @@ def EG_analyzed() -> DAG:
     EG_analyzed = DAGReader._read_dot(
         f'{os.path.dirname(__file__)}/../example_dag.dot')
     EG_analyzed.sub_dags = DAGDivider.divide(EG_analyzed)
+    EG_analyzed.set_num_trigger()
     JobGenerator.generate(EG_analyzed)
     EG_analyzed.jld = JLDAnalyzer.analyze(EG_analyzed, 'proposed', 1.7)
     EG_analyzed.reflect_jobs_in_dag()
@@ -55,6 +58,7 @@ def EG_calculated() -> DAG:
     EG_calculated = DAGReader._read_dot(
         f'{os.path.dirname(__file__)}/../example_dag.dot')
     EG_calculated.sub_dags = DAGDivider.divide(EG_calculated)
+    EG_calculated.set_num_trigger()
     JobGenerator.generate(EG_calculated)
     EG_calculated.jld = JLDAnalyzer.analyze(EG_calculated, 'proposed', 1.7)
     EG_calculated.reflect_jobs_in_dag()
@@ -68,6 +72,7 @@ def EG_scheduler():
     EG_calculated = DAGReader._read_dot(
         f'{os.path.dirname(__file__)}/../example_dag.dot')
     EG_calculated.sub_dags = DAGDivider.divide(EG_calculated)
+    EG_calculated.set_num_trigger()
     JobGenerator.generate(EG_calculated)
     EG_calculated.jld = JLDAnalyzer.analyze(EG_calculated, 'proposed', 1.7)
     EG_calculated.reflect_jobs_in_dag()

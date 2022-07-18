@@ -81,10 +81,11 @@ if __name__ == "__main__":
      sched_algorithm, write_sched_log, calc_utilization) = option_parser()
 
     dag = DAGReader._read_dot(dag_path)
+    dag.sub_dags = DAGDivider.divide(dag)
+    dag.set_num_trigger()
     if jitter:
         jitter_generator = JitterGenerator(*jitter)
         jitter_generator.set_wcet(dag)
-    dag.sub_dags = DAGDivider.divide(dag)
     JobGenerator.generate(dag)
 
     dag.jld = JLDAnalyzer.analyze(dag, analyze_method, alpha)

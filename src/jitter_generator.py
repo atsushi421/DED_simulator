@@ -20,7 +20,9 @@ class JitterGenerator:
         dag: DAG
     ) -> None:
         for node_name, jitter_list in self._jitter_dict.items():
-            wcet = max(jitter_list)
+            num_trigger = \
+                dag.nodes[self._node_name_dict[node_name]]['num_trigger']
+            wcet = max(jitter_list[:num_trigger])
             dag.nodes[self._node_name_dict[node_name]]['exec'] = wcet
 
     def generate_exec_jitter(

@@ -3,7 +3,7 @@ from src.jitter_generator import JitterGenerator
 
 class TestJitterGenerator:
 
-    def test_set_wcet(self, EG, mocker):
+    def test_set_wcet(self, EG_divided, mocker):
         mocker.patch('yaml.safe_load',
                      return_value={
                          'node_name_dict': {'node0': 0, 'node1': 1},
@@ -13,9 +13,9 @@ class TestJitterGenerator:
                          }
                      })
         jitter_gen = JitterGenerator(f'{__file__}', "1.0")
-        jitter_gen.set_wcet(EG)
-        assert EG.nodes[0]['exec'] == 5
-        assert EG.nodes[1]['exec'] == 7
+        jitter_gen.set_wcet(EG_divided)
+        assert EG_divided.nodes[0]['exec'] == 5
+        assert EG_divided.nodes[1]['exec'] == 4
 
     def test_generate_exec_jitter(self, EG_calculated, mocker):
         mocker.patch('yaml.safe_load',

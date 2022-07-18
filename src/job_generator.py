@@ -90,11 +90,6 @@ class JobGenerator:
         dag: DAG
     ) -> None:
         for sub_dag in dag.sub_dags:
-            # Set num_trigger
-            sub_dag_num_trigger = int(dag.hp / sub_dag.period)
-            for node_i in sub_dag.nodes:
-                dag.nodes[node_i]['num_trigger'] = sub_dag_num_trigger
-
             # Initialize variables
             ready_nodes: List[int] = [sub_dag.head]
             finish_nodes: Set[int] = set()
@@ -103,7 +98,7 @@ class JobGenerator:
             while ready_nodes:
                 node_i = ready_nodes.pop(0)
                 jobs: List[Job] = []
-                for i in range(sub_dag_num_trigger*2):  # HACK
+                for i in range(sub_dag.num_trigger*2):  # HACK
                     jobs.append(Job(
                         **JobGenerator._get_job_args(sub_dag, node_i, i)))
 
