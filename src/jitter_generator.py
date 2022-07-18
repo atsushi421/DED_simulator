@@ -13,7 +13,9 @@ class JitterGenerator:
             jitter_src = yaml.safe_load(f)
         self._node_name_dict = jitter_src['node_name_dict']
         self._jitter_dict = jitter_src['jitter']
-        self._factor = float(factor)
+        for node_name, jitter_list in self._jitter_dict.items():
+            self._jitter_dict[node_name] = \
+                [int(j*float(factor)) for j in jitter_list]
 
     def set_wcet(
         self,
@@ -31,5 +33,4 @@ class JitterGenerator:
     ) -> None:
         for node_name, jitter_list in self._jitter_dict.items():
             for job in dag.nodes[self._node_name_dict[node_name]]['jobs']:
-                job.exec = (jitter_list[job.job_i % len(jitter_list)]
-                            * self._factor)
+                job.exec = jitter_list[job.job_i % len(jitter_list)]
