@@ -133,7 +133,8 @@ class JobGenerator:
                            sub_dag.nodes[node_i]['exec'])
 
         if deadline := sub_dag.nodes[node_i].get('deadline'):
-            job_args['deadline'] = (deadline + job_i * sub_dag.period)
+            job_args['deadline'] = (
+                deadline + job_i * sub_dag.period)
 
         return job_args
 

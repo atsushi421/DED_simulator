@@ -119,7 +119,7 @@ class TestScheduler:
         RS.set_num_trigger()
         jitter_generator = JitterGenerator(
             f'{os.path.dirname(__file__)}/../reference_system_exec_jitter_multi_8core_8192.yaml',
-            "1.004"
+            "1.0"
         )
         jitter_generator.set_wcet(RS)
         JobGenerator.generate(RS)
