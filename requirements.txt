@@ -3,6 +3,7 @@ networkx
 pydot
 numpy
 ipykernel
+pandas
 
 ###### Requirements with Version Specifiers ######`
 
