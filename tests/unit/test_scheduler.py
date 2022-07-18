@@ -119,13 +119,14 @@ class TestScheduler:
         RS.set_num_trigger()
         jitter_generator = JitterGenerator(
             f'{os.path.dirname(__file__)}/../reference_system_exec_jitter_multi_8core_8192.yaml',
-            "1.2"
+            "1.004"
         )
         jitter_generator.set_wcet(RS)
         JobGenerator.generate(RS)
-        RS.jld = JLDAnalyzer.analyze(RS, 'proposed', 1.7)
+        RS.jld = JLDAnalyzer.analyze(RS, 'proposed', 2.0)
         RS.reflect_jobs_in_dag()
         LaxityCalculator.calculate(RS)
+        jitter_generator.generate_exec_jitter(RS)
 
         processor = MultiCoreProcessor(8)
         scheduler = Scheduler('LLF', RS, processor, 1.7, True)
