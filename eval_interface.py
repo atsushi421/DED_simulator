@@ -36,9 +36,11 @@ def option_parser():
     )
     arg_parser.add_argument(
         "-j", "--jitter",
-        nargs=2,
+        nargs='+',
         required=False,
-        help='arg 1: jitter source path, arg 2: factor'
+        help=('arg 1: jitter source path, '
+              'arg 2: factor, '
+              'arg 3: random seed (Optional)')
     )
     arg_parser.add_argument(
         "-c", "--num_cores",
