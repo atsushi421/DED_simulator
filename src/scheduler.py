@@ -128,7 +128,7 @@ class Scheduler:
 
             if (head.job_i != 0 and head.is_join
                     and not self._check_dfc(head)):
-                if (exit_i := self._dag.exit_i in
+                if ((exit_i := self._dag.exit_i) in
                         set(self._get_containing_sub_dag(head).nodes)):
                     self._logger.write_deadline_miss(
                         'dfc',

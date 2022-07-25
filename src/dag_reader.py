@@ -38,8 +38,6 @@ class DAGReader:
             else:
                 G.edges[int(s), int(t)]['is_update'] = False
 
-        G.initialize()
-
         return G
 
     @staticmethod

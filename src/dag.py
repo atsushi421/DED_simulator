@@ -32,20 +32,27 @@ class DAG(DiGraph):
     ):
         self._jld = jld
 
-    def initialize(self) -> None:
+    def initialize(
+        self,
+        e2e_deadline_tightness: float
+    ) -> None:
         self.exit_i = [v for v, d in self.out_degree() if d == 0][0]
         self.timer_nodes = [node_i for node_i in self.nodes
                             if 'period' in self.nodes[node_i].keys()]
         self.update_edges = [(si, ti) for si, ti in self.edges
                              if self.edges[si, ti]['is_update']]
         self.trigger_edges = list(set(self.edges) - set(self.update_edges))
-        self._set_deadline()
+        self._set_deadline(e2e_deadline_tightness)
         self.hp = self._calc_hp()
 
-    def _set_deadline(self) -> None:
+    def _set_deadline(
+        self,
+        e2e_deadline_tightness: float
+    ) -> None:
         max_period = max([self.nodes[node_i]['period']
                           for node_i in self.timer_nodes])
-        self.nodes[self.exit_i]['deadline'] = max_period * 1.2
+        self.nodes[self.exit_i]['deadline'] = (max_period
+                                               * e2e_deadline_tightness)
 
     def _calc_hp(self) -> int:
         periods = [self.nodes[node_i]['period']

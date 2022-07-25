@@ -24,6 +24,12 @@ def option_parser():
         type=str
     )
     arg_parser.add_argument(
+        "-t", "--e2e_deadline_tightness",
+        required=False,
+        default=1.2,
+        type=float
+    )
+    arg_parser.add_argument(
         "-m", "--analyze_method",
         required=True,
         type=str,
@@ -68,6 +74,7 @@ def option_parser():
     return (
         args.dag_path,
         args.dest_dir,
+        args.e2e_deadline_tightness,
         args.analyze_method,
         args.alpha,
         args.jitter,
@@ -79,10 +86,12 @@ def option_parser():
 
 
 if __name__ == "__main__":
-    (dag_path, dest_dir, analyze_method, alpha, jitter, num_cores,
+    (dag_path, dest_dir, e2e_deadline_tightness,
+     analyze_method, alpha, jitter, num_cores,
      sched_algorithm, write_sched_log, calc_utilization) = option_parser()
 
     dag = DAGReader._read_dot(dag_path)
+    dag.initialize(e2e_deadline_tightness)
     dag.sub_dags = DAGDivider.divide(dag)
     dag.set_num_trigger()
     if jitter:
