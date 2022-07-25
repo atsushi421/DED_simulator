@@ -1,3 +1,6 @@
+import random
+from typing import Optional
+
 import yaml
 
 from src.dag import DAG
@@ -7,15 +10,28 @@ class JitterGenerator:
     def __init__(
         self,
         jitter_src_path: str,
-        factor: str
+        factor: str,
+        seed: Optional[int] = None
     ) -> None:
         with open(jitter_src_path, "r") as f:
             jitter_src = yaml.safe_load(f)
         self._node_name_dict = jitter_src['node_name_dict']
         self._jitter_dict = jitter_src['jitter']
+        self._randomly_increase_exec(float(factor), seed)
+
+    def _randomly_increase_exec(
+        self,
+        factor: float,
+        seed: Optional[int]
+    ) -> None:
+        if seed:
+            random.seed(seed)
+
         for node_name, jitter_list in self._jitter_dict.items():
-            self._jitter_dict[node_name] = \
-                [int(j*float(factor)) for j in jitter_list]
+            self._jitter_dict[node_name] = [
+                int(j*random.uniform(1.0, float(factor)))
+                for j in jitter_list
+            ]
 
     def set_wcet(
         self,
