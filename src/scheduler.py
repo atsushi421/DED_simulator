@@ -132,7 +132,7 @@ class Scheduler:
                         set(self._get_containing_sub_dag(head).nodes)):
                     self._logger.write_deadline_miss(
                         'dfc',
-                        self._dag.nodes[exit_i]['jobs'][head.job_i]['deadline'],
+                        self._dag.nodes[exit_i]['jobs'][head.job_i].deadline,
                         head
                     )
                     break
