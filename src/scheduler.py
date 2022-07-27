@@ -104,12 +104,12 @@ class Scheduler:
         self._dag = copy.deepcopy(dag)
         self._processor = copy.deepcopy(processor)
         self._alpha = alpha
-        if use_sched_logger:
-            self._logger = ScheduleLogger(len(self._processor.cores))
+        self._logger = ScheduleLogger(len(self._processor.cores))
         self._current_time = 0
 
     def schedule(
         self,
+        write_sched_log: bool = False,
         print_debug_info: bool = False
     ) -> None:
         # Initialize_variables
@@ -162,7 +162,7 @@ class Scheduler:
             idle_core = self._processor.get_idle_core()
             assert idle_core
             idle_core.allocate(head)
-            if self._logger:
+            if write_sched_log:
                 self._logger.write_allocate(
                     idle_core.core_i,
                     head,
