@@ -108,7 +108,8 @@ class Scheduler:
         self._current_time = 0
 
     def schedule(
-        self
+        self,
+        print_debug_info: bool = False
     ) -> None:
         # Initialize_variables
         ready_jobs: List[Job] = []
@@ -116,6 +117,9 @@ class Scheduler:
 
         while self._current_time != self._dag.hp:
             self._update_ready_jobs(ready_jobs)
+            if print_debug_info and ready_jobs:
+                print('[ready_jobs]: '
+                      f'{[f"<{j.node_i}, {j.job_i}>" for j in ready_jobs]}')
 
             # Wait
             if not ready_jobs or not self._processor.get_idle_core():
@@ -164,6 +168,11 @@ class Scheduler:
                     self._current_time,
                     self._current_time + head.exec
                 )
+            if print_debug_info:
+                print('[Allocate]: '
+                      f'time={self._current_time} '
+                      f'<{head.node_i}, {head.job_i}> '
+                      f'laxity={head.laxity}')
 
         if self._logger:
             self._logger.write_makespan(self._current_time)
