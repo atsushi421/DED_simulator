@@ -51,8 +51,8 @@ class DAG(DiGraph):
     ) -> None:
         max_period = max([self.nodes[node_i]['period']
                           for node_i in self.timer_nodes])
-        self.nodes[self.exit_i]['deadline'] = (max_period
-                                               * e2e_deadline_tightness)
+        self.nodes[self.exit_i]['deadline'] = int(max_period
+                                                  * e2e_deadline_tightness)
 
     def _calc_hp(self) -> int:
         periods = [self.nodes[node_i]['period']
