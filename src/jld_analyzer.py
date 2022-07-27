@@ -67,7 +67,12 @@ class JLDAnalyzer:
             sub_dag: SubDAG,
             tail_job: Job
         ) -> int:
-            return sub_dag.nodes[sub_dag.head]['jobs'][tail_job.job_i].rst
+            node_i = tail_job.node_i
+            while (node_i != sub_dag.head
+                    and not sub_dag.nodes[node_i]['is_join']):
+                node_i = list(sub_dag.pred[node_i])[0]
+
+            return sub_dag.nodes[node_i]['jobs'][tail_job.job_i].rst
 
         for sub_dag in dag.sub_dags:
             for tail_i in sub_dag.tails:
@@ -152,7 +157,10 @@ class JLDAnalyzer:
     ) -> SubDAG:
         for sub_dag in dag.sub_dags:
             if node_i in set(sub_dag.nodes):
-                return sub_dag
+                sg = sub_dag
+                break
+
+        return sg
 
     @staticmethod
     def _analyze_in_sub_dag(
