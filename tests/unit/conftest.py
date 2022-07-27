@@ -83,8 +83,10 @@ def EG_scheduler():
     EG_calculated.jld = JLDAnalyzer.analyze(EG_calculated, 'proposed', 1.7)
     EG_calculated.reflect_jobs_in_dag()
     LaxityCalculator.calculate(EG_calculated)
+    early_detection_df = EG_calculated.get_laxity_df()
 
     processor = MultiCoreProcessor(8)
-    EG_scheduler = Scheduler('LLF', EG_calculated, processor, 1.7, True)
+    EG_scheduler = Scheduler('LLF', EG_calculated,
+                             processor, 1.7, early_detection_df)
 
     return EG_scheduler

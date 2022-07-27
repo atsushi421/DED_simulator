@@ -2,6 +2,7 @@ import copy
 import json
 from typing import Dict, List, Optional
 
+import pandas as pd
 import yaml
 
 from src.dag import DAG
@@ -96,14 +97,15 @@ class Scheduler:
         dag: DAG,
         processor: MultiCoreProcessor,
         alpha: float,
-        use_sched_logger: bool
+        early_detection_df: pd.DataFrame
     ) -> None:
         self._validate(algorithm)
 
         self._algorithm = algorithm
-        self._dag = copy.deepcopy(dag)
-        self._processor = copy.deepcopy(processor)
+        self._dag = dag
+        self._processor = processor
         self._alpha = alpha
+        self._early_detection_df = early_detection_df
         self._logger = ScheduleLogger(len(self._processor.cores))
         self._current_time = 0
 
@@ -236,18 +238,22 @@ class Scheduler:
         self,
         head: Job
     ) -> bool:
-        laxity = head.laxity
-        if laxity > NO_LAXITY_CRITERIA:
+        def get_early_detection_time(job: Job) -> int:
+            return (self._early_detection_df.at[f'node{job.node_i}',
+                                                f'job{job.job_i}'])
+
+        edt = get_early_detection_time(head)
+        if edt > NO_LAXITY_CRITERIA:
             next_job_i = head.job_i + 1
             try:
-                while laxity > NO_LAXITY_CRITERIA:
-                    laxity = \
-                        self._dag.nodes[head.node_i]['jobs'][next_job_i].laxity
+                while edt > NO_LAXITY_CRITERIA:
+                    edt = get_early_detection_time(
+                        self._dag.nodes[head.node_i]['jobs'][next_job_i])
                     next_job_i += 1
             except IndexError:
                 return True
 
-        if self._current_time > laxity:
+        if self._current_time > edt:
             return False
         else:
             return True

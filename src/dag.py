@@ -114,7 +114,7 @@ class DAG(DiGraph):
     def get_laxity_df(
         self
     ) -> pd.DataFrame:
-        max_num_jobs = max([self.nodes[node_i]['num_trigger']
+        max_num_jobs = max([self.nodes[node_i]['num_trigger']*2
                            for node_i in self.nodes])
         index = [f'node{node_i}' for node_i in self.nodes]
         data = []

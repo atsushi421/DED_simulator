@@ -1,6 +1,10 @@
 import argparse
+import copy
 import os
 
+import pandas as pd
+
+from src.dag import DAG
 from src.dag_divider import DAGDivider
 from src.dag_reader import DAGReader
 from src.jitter_generator import JitterGenerator
@@ -85,6 +89,18 @@ def option_parser():
     )
 
 
+def get_early_detection_df(
+    dag: DAG,
+    alpha: float
+) -> pd.DataFrame:
+    temp_dag = copy.deepcopy(dag)
+    temp_dag.jld = JLDAnalyzer.analyze(temp_dag, 'proposed', alpha)
+    temp_dag.reflect_jobs_in_dag()
+    LaxityCalculator.calculate(temp_dag)
+
+    return temp_dag.get_laxity_df()
+
+
 if __name__ == "__main__":
     (dag_path, dest_dir, e2e_deadline_tightness,
      analyze_method, alpha, jitter, num_cores,
@@ -99,6 +115,8 @@ if __name__ == "__main__":
         jitter_generator.set_wcet(dag)
     JobGenerator.generate(dag)
 
+    early_detection_df = get_early_detection_df(dag, alpha)
+
     dag.jld = JLDAnalyzer.analyze(dag, analyze_method, alpha)
     dag.reflect_jobs_in_dag()
     LaxityCalculator.calculate(dag)
@@ -110,9 +128,10 @@ if __name__ == "__main__":
 
     processor = MultiCoreProcessor(num_cores)
     scheduler = Scheduler(sched_algorithm, dag,
-                          processor, alpha, write_sched_log)
+                          processor, alpha, early_detection_df)
     scheduler.schedule()
 
+    # Logging
     file_name = (
         f'{os.path.splitext(os.path.basename(dag_path))[0]}_'
         f'{analyze_method}_'

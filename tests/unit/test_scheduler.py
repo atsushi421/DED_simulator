@@ -1,6 +1,7 @@
 import os
 import sys
 
+import pandas as pd
 from src.dag import DAG
 from src.dag_divider import DAGDivider
 from src.dag_reader import DAGReader
@@ -108,10 +109,11 @@ class TestScheduler:
         RS.jld = JLDAnalyzer.analyze(RS, 'proposed', 1.2)
         RS.reflect_jobs_in_dag()
         LaxityCalculator.calculate(RS)
+        early_detection_df = RS.get_laxity_df()
         jitter_generator.generate_exec_jitter(RS)
 
         processor = MultiCoreProcessor(8)
-        scheduler = Scheduler('LLF', RS, processor, 1.2, True)
+        scheduler = Scheduler('LLF', RS, processor, 1.2, early_detection_df)
         scheduler.schedule()
 
     def test_get_containing_sub_dag(self, EG_scheduler):
@@ -176,17 +178,21 @@ class TestScheduler:
         job_mock0 = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock0, 'node_i', 0)
         mocker.patch.object(job_mock0, 'job_i', 0)
-        mocker.patch.object(job_mock0, 'laxity', sys.maxsize)
         job_mock1 = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock1, 'node_i', 0)
         mocker.patch.object(job_mock1, 'job_i', 1)
-        mocker.patch.object(job_mock1, 'laxity', sys.maxsize)
         job_mock2 = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock2, 'node_i', 0)
         mocker.patch.object(job_mock2, 'job_i', 2)
-        mocker.patch.object(job_mock2, 'laxity', 20)
         EG_scheduler._dag.nodes[0]['jobs'][1] = job_mock1
         EG_scheduler._dag.nodes[0]['jobs'][2] = job_mock2
+
+        EG_scheduler._early_detection_df = pd.DataFrame(
+            data=[{'job0': sys.maxsize,
+                   'job1': sys.maxsize,
+                   'job2': 20}],
+            index=['node0']
+        )
 
         EG_scheduler._current_time = 21
         assert not EG_scheduler._early_detection(job_mock0)
