@@ -52,11 +52,12 @@ class ScheduleLogger:
         detection_time: int,
         job: Job
     ) -> None:
-        self._dm_log['early_detection'] = {
-            'detection_time': detection_time,
-            'node_i': job.node_i,
-            'job_i': job.job_i
-        }
+        if 'early_detection' not in self._dm_log.keys():
+            self._dm_log['early_detection'] = {
+                'detection_time': detection_time,
+                'node_i': job.node_i,
+                'job_i': job.job_i
+            }
 
     def write_deadline_miss(
         self,
