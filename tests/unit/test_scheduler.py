@@ -77,25 +77,6 @@ class TestScheduleLogger:
 
 class TestScheduler:
 
-    # def test_remove_unnecessary_jobs(self, EG_calculated):
-    #     Scheduler._remove_unnecessary_jobs(EG_calculated)
-
-    #     for node_i in EG_calculated.nodes:
-    #         if node_i == 0:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 10
-    #         if node_i == 1:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 3
-    #         if node_i == 2:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 10
-    #         if node_i == 3:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 3
-    #         if node_i == 4:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 15
-    #         if node_i == 5:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 6
-    #         if node_i == 6:
-    #             assert len(EG_calculated.nodes[node_i]['jobs']) == 6
-
     def test_schedule_01(self, EG_scheduler):
         EG_scheduler.schedule()
         logger = EG_scheduler.create_logger()
@@ -150,13 +131,6 @@ class TestScheduler:
         node4_sub_dag = EG_scheduler._get_containing_sub_dag(node4_job)
         assert node4_sub_dag == EG_scheduler._dag.sub_dags[2]
 
-    def test_update_ready_jobs(self, EG_scheduler):
-        EG_scheduler._update_ready_jobs()
-
-        assert len(EG_scheduler._ready_jobs) == 4
-        for job in EG_scheduler._ready_jobs:
-            assert job.tri_time == EG_scheduler._current_time
-
     def test_pop_highest_priority_job_LLF(self, mocker, EG_scheduler):
         job_mock0 = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock0, 'laxity', 10)
@@ -165,48 +139,38 @@ class TestScheduler:
         job_mock2 = mocker.Mock(spec=Job)
         mocker.patch.object(job_mock2, 'laxity', 20)
 
-        EG_scheduler._ready_jobs = [job_mock0, job_mock1, job_mock2]
+        ready_jobs = [job_mock0, job_mock1, job_mock2]
 
-        assert [EG_scheduler._pop_highest_priority_job()
+        assert [EG_scheduler._pop_highest_priority_job(ready_jobs)
                 for _ in range(3)] == [job_mock0, job_mock2, job_mock1]
 
     def test_pop_highest_priority_job_EDF(self, EG_scheduler):
-        EG_scheduler._update_ready_jobs()
+        ready_jobs = []
+        EG_scheduler._update_ready_jobs(ready_jobs)
         EG_scheduler._algorithm = 'EDF'
 
-        pops = [EG_scheduler._pop_highest_priority_job() for _ in range(4)]
+        pops = [EG_scheduler._pop_highest_priority_job(ready_jobs)
+                for _ in range(4)]
         assert pops[0].node_i == 4
         assert pops[1].node_i == 0
         assert pops[2].node_i == 5
         assert pops[3].node_i == 1
 
-    def test_advance_time_01(self, EG_scheduler):
-        EG_scheduler._update_ready_jobs()
-        head = EG_scheduler._pop_highest_priority_job()
+    def test_trigger_succs(self, EG_scheduler):
+        ready_jobs = []
+        EG_scheduler._update_ready_jobs(ready_jobs)
+        head = EG_scheduler._pop_highest_priority_job(ready_jobs)
         idle_core = EG_scheduler._processor.get_idle_core()
         idle_core.allocate(head)
 
         for _ in range(14):
-            EG_scheduler._advance_time()
+            now_finish_jobs = EG_scheduler._advance_time()
+        EG_scheduler._trigger_succs(now_finish_jobs)
 
         assert not EG_scheduler._processor.cores[0].proc_job
         assert EG_scheduler._processor.cores[0].remain == 0
         assert (EG_scheduler._dag.nodes[6]['jobs'][0].tri_time
                 == 14+7)
-
-    def test_advance_time_02(self, EG_scheduler, mocker):
-        job_mock = mocker.Mock(spec=Job)
-        mocker.patch.object(job_mock, 'node_i', 6)
-        mocker.patch.object(job_mock, 'exec', 11)
-        mocker.patch.object(job_mock, 'deadline', 10)
-        mocker.patch('src.dag.DAG.get_succ_tri',
-                     return_value=None)
-        idle_core = EG_scheduler._processor.get_idle_core()
-        idle_core.allocate(job_mock)
-
-        for _ in range(11):
-            EG_scheduler._advance_time()
-        assert EG_scheduler._dm_flag
 
     def test_early_detection(self, EG_scheduler, mocker):
         job_mock0 = mocker.Mock(spec=Job)
@@ -259,10 +223,10 @@ class TestScheduler:
         sub_dag1.add_node(2)
         dag._sub_dags = [sub_dag0, sub_dag1]
         EG_scheduler._dag = dag
-        EG_scheduler._finish_jobs = [job_mock0, job_mock1]
+        finish_jobs = [job_mock0, job_mock1]
 
         EG_scheduler._current_time = 186
-        assert not EG_scheduler._check_dfc(job_mock2)
+        assert not EG_scheduler._check_dfc(job_mock2, finish_jobs)
 
         EG_scheduler._current_time = 185
-        assert EG_scheduler._check_dfc(job_mock2)
+        assert EG_scheduler._check_dfc(job_mock2, finish_jobs)

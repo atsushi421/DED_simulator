@@ -1,6 +1,6 @@
 import copy
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import yaml
 
@@ -99,49 +99,65 @@ class Scheduler:
     ) -> None:
         self._validate(algorithm)
 
-        # Initialize variables
         self._algorithm = algorithm
         self._dag = copy.deepcopy(dag)
         self._processor = copy.deepcopy(processor)
         self._alpha = alpha
-        self._ready_jobs: List[Job] = []
-        self._finish_jobs: List[Job] = []
-        self._dm_flag = False
+        if use_sched_logger:
+            self._logger = ScheduleLogger(len(self._processor.cores))
         self._current_time = 0
-        self._use_sched_logger = use_sched_logger
-        self._logger = ScheduleLogger(len(self._processor.cores))
 
-    def schedule(self) -> None:
+    def schedule(
+        self
+    ) -> None:
+        # Initialize_variables
+        ready_jobs: List[Job] = []
+        finish_jobs: List[Job] = []
+
         while self._current_time != self._dag.hp:
-            if self._dm_flag:
-                break
+            self._update_ready_jobs(ready_jobs)
 
-            self._update_ready_jobs()
-            if not self._ready_jobs or not self._processor.get_idle_core():
-                self._advance_time()
+            # Wait
+            if not ready_jobs or not self._processor.get_idle_core():
+                now_finish_jobs = self._advance_time()
+                if now_finish_jobs:
+                    finish_jobs += now_finish_jobs
+                    self._trigger_succs(now_finish_jobs)
+
+                    # Check deadline miss
+                    for job in now_finish_jobs:
+                        if (job.node_i == self._dag.exit_i and
+                                self._current_time > job.deadline):
+                            self._logger.write_deadline_miss(
+                                'e2e deadline', self._current_time, job)
+                            break
                 continue
 
-            head = self._pop_highest_priority_job()
+            # Allocatable
+            head = self._pop_highest_priority_job(ready_jobs)
 
             if not self._early_detection(head):
                 self._logger.write_early_detection(self._current_time, head)
 
             if (head.job_i != 0 and head.is_join
-                    and not self._check_dfc(head)):
+                    and not self._check_dfc(head, finish_jobs)):
                 if ((exit_i := self._dag.exit_i) in
                         set(self._get_containing_sub_dag(head).nodes)):
+                    dm_exit_job = self._dag.nodes[exit_i]['jobs'][head.job_i]
                     self._logger.write_deadline_miss(
                         'dfc',
-                        self._dag.nodes[exit_i]['jobs'][head.job_i].deadline,
-                        head
+                        dm_exit_job.deadline,
+                        dm_exit_job
                     )
                     break
                 else:
                     continue
 
+            # Allocate
             idle_core = self._processor.get_idle_core()
+            assert idle_core
             idle_core.allocate(head)
-            if self._use_sched_logger:
+            if self._logger:
                 self._logger.write_allocate(
                     idle_core.core_i,
                     head,
@@ -149,7 +165,8 @@ class Scheduler:
                     self._current_time + head.exec
                 )
 
-        self._logger.write_makespan(self._current_time)
+        if self._logger:
+            self._logger.write_makespan(self._current_time)
 
     def create_logger(self) -> ScheduleLogger:
         return self._logger
@@ -167,7 +184,8 @@ class Scheduler:
 
     def _check_dfc(
         self,
-        head: Job
+        head: Job,
+        finish_jobs: List[Job]
     ) -> bool:
         def get_update_ts_node(
             sub_dag: SubDAG,
@@ -183,16 +201,16 @@ class Scheduler:
         def get_timestamp(tail_job: Job) -> int:
             sub_dag = self._get_containing_sub_dag(tail_job)
             update_ts_node = get_update_ts_node(sub_dag, tail_job)
-            for finish_job in reversed(self._finish_jobs):
+            for finish_job in reversed(finish_jobs):
                 if (finish_job.node_i == update_ts_node
                         and finish_job.job_i == tail_job.job_i):
                     timestamp = finish_job.tri_time
 
             return timestamp
 
-        for pred_i in self._dag.pred[head.node_i]:
-            for finish_job in reversed(self._finish_jobs):
-                if finish_job.node_i == pred_i:
+        for tail_i in self._dag.pred[head.node_i]:
+            for finish_job in reversed(finish_jobs):
+                if finish_job.node_i == tail_i:
                     dfc = int(
                         self._alpha
                         * self._get_containing_sub_dag(finish_job).period
@@ -224,53 +242,45 @@ class Scheduler:
         else:
             return True
 
-    def _pop_highest_priority_job(self) -> Job:
+    def _pop_highest_priority_job(
+        self,
+        ready_jobs: List[Job]
+    ) -> Job:
         if self._algorithm == 'EDF':
             # sort by implicit deadline
-            self._ready_jobs.sort(
+            ready_jobs.sort(
                 key=lambda x: (self._get_containing_sub_dag(x).period
                                * (x.job_i+1))
             )
         elif self._algorithm == 'LLF':
-            self._ready_jobs.sort(key=lambda x: x.laxity)
+            ready_jobs.sort(key=lambda x: x.laxity)
 
-        return self._ready_jobs.pop(0)
+        return ready_jobs.pop(0)
 
-    def _advance_time(self) -> None:
+    def _trigger_succs(
+        self,
+        now_finish_jobs: List[Job]
+    ) -> None:
+        for job in now_finish_jobs:
+            if succs := self._dag.get_succ_tri(job.node_i):
+                for succ_i in succs:
+                    self._dag.nodes[succ_i]['jobs'][0].tri_time = \
+                        (self._current_time +
+                         self._dag.edges[job.node_i, succ_i]['comm'])
+
+    def _advance_time(self) -> Optional[List[Job]]:
         self._current_time += 1
-        if fin_jobs := self._processor.process():
-            self._finish_jobs += fin_jobs
-            for fin_job in fin_jobs:
-                # Trigger successor event-driven nodes
-                if succs := self._dag.get_succ_tri(fin_job.node_i):
-                    for succ_i in succs:
-                        self._dag.nodes[succ_i]['jobs'][0].tri_time = \
-                            (self._current_time +
-                             self._dag.edges[fin_job.node_i, succ_i]['comm'])
-
-                # Check deadline miss
-                elif (fin_job.node_i == self._dag.exit_i and
-                      self._current_time > fin_job.deadline):
-                    self._dm_flag = True
-                    self._logger.write_deadline_miss(
-                        'e2e deadline', self._current_time, fin_job)
+        return self._processor.process()
 
     def _update_ready_jobs(
-        self
+        self,
+        ready_jobs: List[Job]
     ) -> None:
         for node_i in self._dag.nodes:
             if (self._dag.nodes[node_i]['jobs']
                 and self._dag.nodes[node_i]['jobs'][0].tri_time
                     == self._current_time):
-                self._ready_jobs.append(self._dag.nodes[node_i]['jobs'].pop(0))
-
-    # @staticmethod
-    # def _remove_unnecessary_jobs(
-    #     dag: DAG
-    # ) -> None:
-    #     for node_i in dag.nodes:
-    #         dag.nodes[node_i]['jobs'] = \
-    #             dag.nodes[node_i]['jobs'][:dag.nodes[node_i]['num_trigger']]
+                ready_jobs.append(self._dag.nodes[node_i]['jobs'].pop(0))
 
     @staticmethod
     def _validate(
