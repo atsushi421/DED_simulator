@@ -1,8 +1,6 @@
 import copy
 from typing import List
 
-import networkx as nx
-
 from src.dag import DAG
 from src.sub_dag import SubDAG
 

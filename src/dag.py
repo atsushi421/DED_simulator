@@ -1,8 +1,12 @@
 from typing import List, Optional
 
+import numpy as np
+import pandas as pd
 from networkx import DiGraph
 
 from src.sub_dag import SubDAG
+
+NO_LAXITY_CRITERIA = 9000000000000000000  # HACK
 
 
 class DAG(DiGraph):
@@ -106,3 +110,25 @@ class DAG(DiGraph):
             total_utilization += ave_sub_dag_utilization
 
         return total_utilization
+
+    def get_laxity_df(
+        self
+    ) -> pd.DataFrame:
+        max_num_jobs = max([self.nodes[node_i]['num_trigger']
+                           for node_i in self.nodes])
+        index = [f'node{node_i}' for node_i in self.nodes]
+        data = []
+
+        for node_i in self.nodes:
+            laxity_dict = {}
+            for i, job_i in enumerate(range(max_num_jobs)):
+                if i >= self.nodes[node_i]['num_trigger']:
+                    laxity = np.nan
+                else:
+                    laxity = self.nodes[node_i]['jobs'][job_i].laxity
+                    if laxity > NO_LAXITY_CRITERIA:
+                        laxity = np.nan
+                laxity_dict[f'job{job_i}'] = laxity
+            data.append(laxity_dict)
+
+        return pd.DataFrame(data=data, index=index)
