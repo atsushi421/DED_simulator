@@ -146,19 +146,19 @@ class Scheduler:
             if not self._early_detection(head):
                 self._logger.write_early_detection(self._current_time, head)
 
-            if (head.job_i != 0 and head.is_join
-                    and not self._check_dfc(head, finish_jobs)):
-                if ((exit_i := self._dag.exit_i) in
-                        set(self._get_containing_sub_dag(head).nodes)):
-                    dm_exit_job = self._dag.nodes[exit_i]['jobs'][head.job_i]
-                    self._logger.write_deadline_miss(
-                        'dfc',
-                        dm_exit_job.deadline,
-                        dm_exit_job
-                    )
-                    break
-                else:
-                    continue
+            # if (head.job_i != 0 and head.is_join
+            #         and not self._check_dfc(head, finish_jobs)):
+            #     if ((exit_i := self._dag.exit_i) in
+            #             set(self._get_containing_sub_dag(head).nodes)):
+            #         dm_exit_job = self._dag.nodes[exit_i]['jobs'][head.job_i]
+            #         self._logger.write_deadline_miss(
+            #             'dfc',
+            #             dm_exit_job.deadline,
+            #             dm_exit_job
+            #         )
+            #         break
+            #     else:
+            #         continue
 
             # Allocate
             idle_core = self._processor.get_idle_core()
@@ -243,15 +243,15 @@ class Scheduler:
                                                 f'job{job.job_i}'])
 
         edt = get_early_detection_time(head)
-        if edt > NO_LAXITY_CRITERIA:
-            next_job_i = head.job_i + 1
-            try:
-                while edt > NO_LAXITY_CRITERIA:
-                    edt = get_early_detection_time(
-                        self._dag.nodes[head.node_i]['jobs'][next_job_i])
-                    next_job_i += 1
-            except IndexError:
-                return True
+        # if edt > NO_LAXITY_CRITERIA:
+        #     next_job_i = head.job_i + 1
+        #     try:
+        #         while edt > NO_LAXITY_CRITERIA:
+        #             edt = get_early_detection_time(
+        #                 self._dag.nodes[head.node_i]['jobs'][next_job_i])
+        #             next_job_i += 1
+        #     except IndexError:
+        #         return True
 
         if self._current_time > edt:
             return False
