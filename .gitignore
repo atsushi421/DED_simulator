@@ -135,5 +135,5 @@ dmypy.json
 *.html
 *.zip
 *.csv
-*.txt
 debug.py
+*.pdf

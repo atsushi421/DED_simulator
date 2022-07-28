@@ -4,6 +4,8 @@ pydot
 numpy
 ipykernel
 pandas
+matplotlib
+seaborn
 
 ###### Requirements with Version Specifiers ######`
 
