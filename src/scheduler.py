@@ -146,19 +146,19 @@ class Scheduler:
             if not self._early_detection(head):
                 self._logger.write_early_detection(self._current_time, head)
 
-            # if (head.job_i != 0 and head.is_join
-            #         and not self._check_dfc(head, finish_jobs)):
-            #     if ((exit_i := self._dag.exit_i) in
-            #             set(self._get_containing_sub_dag(head).nodes)):
-            #         dm_exit_job = self._dag.nodes[exit_i]['jobs'][head.job_i]
-            #         self._logger.write_deadline_miss(
-            #             'dfc',
-            #             dm_exit_job.deadline,
-            #             dm_exit_job
-            #         )
-            #         break
-            #     else:
-            #         continue
+            if (head.job_i != 0 and head.is_join
+                    and not self._check_dfc(head, finish_jobs)):
+                if ((exit_i := self._dag.exit_i) in
+                        set(self._get_containing_sub_dag(head).nodes)):
+                    dm_exit_job = self._dag.nodes[exit_i]['jobs'][head.job_i]
+                    self._logger.write_deadline_miss(
+                        'dfc',
+                        dm_exit_job.deadline,
+                        dm_exit_job
+                    )
+                    break
+                else:
+                    continue
 
             # Allocate
             idle_core = self._processor.get_idle_core()
@@ -194,40 +194,55 @@ class Scheduler:
 
         return sg
 
+    def _get_update_ts_node(
+        self,
+        sub_dag: SubDAG,
+        tail_job: Job
+    ) -> int:
+        node_i = tail_job.node_i
+        while (node_i != sub_dag.head
+                and not sub_dag.nodes[node_i]['is_join']):
+            node_i = list(sub_dag.pred[node_i])[0]
+
+        return node_i
+
+    def _get_timestamp(
+        self,
+        tail_job: Job,
+        finish_jobs: List[Job]
+    ) -> int:
+        sub_dag = self._get_containing_sub_dag(tail_job)
+        update_ts_node = self._get_update_ts_node(sub_dag, tail_job)
+        for finish_job in reversed(finish_jobs):
+            if (finish_job.node_i == update_ts_node
+                    and finish_job.job_i == tail_job.job_i):
+                timestamp = finish_job.tri_time
+
+        try:
+            return timestamp
+        except UnboundLocalError as e:
+            print(
+                f'[debug] finish_jobs: {[f"<{f.node_i}, {f.job_i}>" for f in finish_jobs]}')
+            print(f'[debug] tail_job: <{tail_job.node_i}, {tail_job.job_i}>')
+            raise(e)
+
     def _check_dfc(
         self,
         head: Job,
         finish_jobs: List[Job]
     ) -> bool:
-        def get_update_ts_node(
-            sub_dag: SubDAG,
-            tail_job: Job
-        ) -> int:
-            node_i = tail_job.node_i
-            while (node_i != sub_dag.head
-                   and not sub_dag.nodes[node_i]['is_join']):
-                node_i = list(sub_dag.pred[node_i])[0]
-
-            return node_i
-
-        def get_timestamp(tail_job: Job) -> int:
-            sub_dag = self._get_containing_sub_dag(tail_job)
-            update_ts_node = get_update_ts_node(sub_dag, tail_job)
-            for finish_job in reversed(finish_jobs):
-                if (finish_job.node_i == update_ts_node
-                        and finish_job.job_i == tail_job.job_i):
-                    timestamp = finish_job.tri_time
-
-            return timestamp
-
         for tail_i in self._dag.pred[head.node_i]:
             for finish_job in reversed(finish_jobs):
-                if finish_job.node_i == tail_i:
+                if finish_job.node_i == tail_i:  # finish_job is pred tail_job
                     dfc = int(
                         self._alpha
                         * self._get_containing_sub_dag(finish_job).period
                     )
-                    if self._current_time - get_timestamp(finish_job) > dfc:
+                    if ((self._current_time
+                         - self._get_timestamp(finish_job, finish_jobs))
+                            > dfc):
+                        print(
+                            f'[debug] ~dfc~ <{finish_job.node_i}, {finish_job.job_i}>')
                         return False
                     else:
                         break

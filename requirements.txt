@@ -6,6 +6,7 @@ ipykernel
 pandas
 matplotlib
 seaborn
+tqdm
 
 ###### Requirements with Version Specifiers ######`
 

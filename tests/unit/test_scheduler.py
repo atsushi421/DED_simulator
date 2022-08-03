@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import List
 
 import pandas as pd
 from src.dag import DAG
@@ -236,3 +237,102 @@ class TestScheduler:
 
         EG_scheduler._current_time = 185
         assert EG_scheduler._check_dfc(job_mock2, finish_jobs)
+
+    def test_get_update_ts_node_no_middle_join(self, mocker):
+        sub_dag = SubDAG()
+        sub_dag.add_nodes_from([0, 1, 2, 3, 4, 5])
+        for node_i in sub_dag.nodes:
+            sub_dag.nodes[node_i]['is_join'] = False
+        sub_dag.add_edge(0, 1)
+        sub_dag.add_edge(1, 2)
+        sub_dag.add_edge(2, 3)
+        sub_dag.add_edge(3, 4)
+        sub_dag.add_edge(4, 5)
+        sub_dag.head = 0
+
+        tail_job_mock = mocker.Mock(spec=Job)
+        mocker.patch.object(tail_job_mock, 'node_i', 5)
+
+        mocker.patch('src.scheduler.Scheduler.__init__', return_value=None)
+        scheduler = Scheduler()
+
+        # test
+        ts_node = scheduler._get_update_ts_node(sub_dag, tail_job_mock)
+        assert ts_node == 0
+
+    def test_get_update_ts_node_middle_join(self, mocker):
+        sub_dag = SubDAG()
+        sub_dag.add_nodes_from([0, 1, 2, 3, 4, 5])
+        for node_i in sub_dag.nodes:
+            if node_i == 3:
+                sub_dag.nodes[node_i]['is_join'] = True
+                continue
+            sub_dag.nodes[node_i]['is_join'] = False
+        sub_dag.add_edge(0, 1)
+        sub_dag.add_edge(1, 2)
+        sub_dag.add_edge(2, 3)
+        sub_dag.add_edge(3, 4)
+        sub_dag.add_edge(4, 5)
+        sub_dag.head = 0
+
+        tail_job_mock = mocker.Mock(spec=Job)
+        mocker.patch.object(tail_job_mock, 'node_i', 5)
+
+        mocker.patch('src.scheduler.Scheduler.__init__', return_value=None)
+        scheduler = Scheduler()
+
+        # test
+        ts_node = scheduler._get_update_ts_node(sub_dag, tail_job_mock)
+        assert ts_node == 3
+
+    def test_get_timestamp(self, mocker):
+        sub_dag = SubDAG()
+        sub_dag.add_nodes_from([0, 1, 2, 3, 4, 5])
+        for node_i in sub_dag.nodes:
+            sub_dag.nodes[node_i]['is_join'] = False
+        sub_dag.add_edge(0, 1)
+        sub_dag.add_edge(1, 2)
+        sub_dag.add_edge(2, 3)
+        sub_dag.add_edge(3, 4)
+        sub_dag.add_edge(4, 5)
+        sub_dag.head = 0
+        mocker.patch('src.scheduler.Scheduler._get_containing_sub_dag',
+                     return_value=sub_dag)
+
+        tail_job_mock = mocker.Mock(spec=Job)
+        mocker.patch.object(tail_job_mock, 'node_i', 5)
+        mocker.patch.object(tail_job_mock, 'job_i', 3)
+
+        mocker.patch('src.scheduler.Scheduler.__init__', return_value=None)
+        scheduler = Scheduler()
+
+        finish_jobs: List[Job] = []
+        finish_job_mock0 = mocker.Mock(spec=Job)
+        mocker.patch.object(finish_job_mock0, 'node_i', 0)
+        mocker.patch.object(finish_job_mock0, 'job_i', 3)
+        mocker.patch.object(finish_job_mock0, 'tri_time', 150)
+        finish_jobs.append(finish_job_mock0)
+        finish_job_mock1 = mocker.Mock(spec=Job)
+        mocker.patch.object(finish_job_mock1, 'node_i', 1)
+        mocker.patch.object(finish_job_mock1, 'job_i', 3)
+        finish_jobs.append(finish_job_mock1)
+        finish_job_mock2 = mocker.Mock(spec=Job)
+        mocker.patch.object(finish_job_mock2, 'node_i', 2)
+        mocker.patch.object(finish_job_mock2, 'job_i', 3)
+        finish_jobs.append(finish_job_mock2)
+        finish_job_mock3 = mocker.Mock(spec=Job)
+        mocker.patch.object(finish_job_mock3, 'node_i', 3)
+        mocker.patch.object(finish_job_mock3, 'job_i', 3)
+        finish_jobs.append(finish_job_mock3)
+        finish_job_mock4 = mocker.Mock(spec=Job)
+        mocker.patch.object(finish_job_mock4, 'node_i', 4)
+        mocker.patch.object(finish_job_mock4, 'job_i', 3)
+        finish_jobs.append(finish_job_mock4)
+        finish_job_mock5 = mocker.Mock(spec=Job)
+        mocker.patch.object(finish_job_mock5, 'node_i', 0)
+        mocker.patch.object(finish_job_mock5, 'job_i', 2)
+        finish_jobs.append(finish_job_mock4)
+
+        # test
+        ts = scheduler._get_timestamp(tail_job_mock, finish_jobs)
+        assert ts == 150
