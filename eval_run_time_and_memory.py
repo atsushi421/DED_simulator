@@ -92,7 +92,7 @@ def export_alg12_log(
     log = {
         'Number of nodes': dag.number_of_nodes(),
         'Number of edges': dag.number_of_edges(),
-        'Number of timer driven_nodes': len(dag.timer_nodes),
+        'Number of timer driven nodes': len(dag.timer_nodes),
         'Number of join nodes': len([ni for ni in dag.nodes if dag.nodes[ni]['is_join']]),
         'Number of tail nodes': hl.get_num_tails(),
         'Number of tail and join node pairs': hl.get_num_node_pair_tail_join()
@@ -117,7 +117,7 @@ def export_alg3_log(
     log = {
         'Number of nodes': dag.number_of_nodes(),
         'Number of edges': dag.number_of_edges(),
-        'Number of timer driven_nodes': len(dag.timer_nodes),
+        'Number of timer driven nodes': len(dag.timer_nodes),
         'Number of join nodes': len([ni for ni in dag.nodes if dag.nodes[ni]['is_join']]),
         'Number of tail nodes': hl.get_num_tails(),
         'Number of sub DAGs': len(dag.sub_dags),
