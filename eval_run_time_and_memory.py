@@ -1,9 +1,6 @@
 import argparse
 import os
 import glob
-from typing import List, Tuple
-from src.jld_analyzer import JLDAnalyzer
-from src.job_generator import JobGenerator
 import yaml
 import time
 
@@ -12,6 +9,8 @@ from memory_profiler import memory_usage
 from src.random_dag_fomatter import RandomDAGFormatter
 from src.dag import DAG
 from src.dag_divider import DAGDivider
+from src.jld_analyzer import JLDAnalyzer
+from src.job_generator import JobGenerator
 
 
 def option_parser():
