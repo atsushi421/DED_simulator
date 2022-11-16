@@ -18,12 +18,14 @@ class RandomDAGFormatter:
             if dag.nodes[node_i].get('period') is None:
                 continue
             # timer-driven node
-            dag.nodes[node_i]['is_join'] = True
-            for pred_i in dag.pred[node_i]:
+            preds = dag.pred[node_i]
+            if preds:
+                dag.nodes[node_i]['is_join'] = True
+            for pred_i in preds:
                 dag.edges[pred_i, node_i]['is_update'] = True
 
     @staticmethod
-    def read_dot(path: str) -> nx.DiGraph:
+    def read_dot(path: str) -> DAG:
         tmp_dag = nx.drawing.nx_pydot.read_dot(path)
         tmp_dag = nx.DiGraph(tmp_dag)
         tmp_dag.remove_node('\\n')
