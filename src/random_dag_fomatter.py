@@ -1,3 +1,4 @@
+from typing import Optional
 import networkx as nx
 import random
 
@@ -7,7 +8,10 @@ from src.dag import DAG
 class RandomDAGFormatter:
 
     @staticmethod
-    def format(dag: DAG) -> None:
+    def format(dag: DAG, dag_id: Optional[int] = None) -> None:
+        if dag_id is not None:
+            random.seed(dag_id)
+
         # Convert exit node to timer-driven node
         period_choice = [10, 20, 30, 40, 50, 60, 80, 100, 120]
         exit_i = [v for v, d in dag.out_degree() if d == 0][0]
