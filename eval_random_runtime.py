@@ -4,6 +4,8 @@ import glob
 import yaml
 import time
 
+from memory_profiler import memory_usage
+
 from src.random_dag_fomatter import RandomDAGFormatter
 from src.dag import DAG
 from src.dag_divider import DAGDivider
@@ -31,23 +33,35 @@ def option_parser():
 
     return (
         args.dag_dir,
-        args.dest_dir
+        args.dest_dir,
+        args.metrics
     )
 
 
-def export_alg12_run_time_log(dag: DAG, run_time: float, result_dir_path: str, dag_id: int) -> None:
+def export_alg12_log(
+    dag: DAG,
+    metrics: str,
+    measured_value: float,
+    result_dir_path: str,
+    dag_id: int
+) -> None:
     log = {
         'Number of nodes': dag.number_of_nodes(),
+        'Number of edges': dag.number_of_edges(),
         'Number of timer driven_nodes': len(dag.timer_nodes),
-        'Number of join nodes': len([ni for ni in dag.nodes if dag.nodes[ni]['is_join']]),
-        'Run time [ms]': run_time * 10**(3)
+        'Number of join nodes': len([ni for ni in dag.nodes if dag.nodes[ni]['is_join']])
     }
-    with open(f'{result_dir_path}/run_time/alg12/{dag_id}.yaml', 'w') as f:
+    if metrics == 'run_time':
+        log['Run time [ms]'] = measured_value * 10**(3)
+    else:
+        log['Maximum memory usage [MiB]'] = measured_value
+
+    with open(f'{result_dir_path}/{metrics}/alg12/{dag_id}.yaml', 'w') as f:
         yaml.dump(log, f)
 
 
 if __name__ == "__main__":
-    dag_dir, dest_dir = option_parser()
+    dag_dir, dest_dir, metrics = option_parser()
     dag_paths = glob.glob(f"{dag_dir}/**/*.dot", recursive=True)
     for i, dag_path in enumerate(dag_paths):
         dag = RandomDAGFormatter.read_dot(dag_path)
@@ -55,7 +69,19 @@ if __name__ == "__main__":
         dag.initialize(e2e_deadline_tightness=1.5)
 
         # Algorithm 1 and 2
-        start_time = time.perf_counter()
-        dag.sub_dags = DAGDivider.divide(dag)
-        run_time = time.perf_counter() - start_time
-        export_alg12_run_time_log(dag, run_time, dest_dir, i)
+        if metrics == 'run_time':
+            start_time = time.perf_counter()
+            dag.sub_dags = DAGDivider.divide(dag)
+            run_time = time.perf_counter() - start_time
+            export_alg12_log(dag, metrics, run_time, dest_dir, i)
+        else:
+            max_memory_usage = memory_usage(
+                (DAGDivider.divide, (dag,), {}),
+                interval=0.01,
+                include_children=True,
+                max_usage=True
+            )
+            export_alg12_log(dag, metrics, max_memory_usage, dest_dir, i)
+
+        # Algorithm 3
+        # TODO
