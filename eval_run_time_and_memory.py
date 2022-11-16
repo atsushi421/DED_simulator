@@ -48,9 +48,10 @@ class LogHelper:
         for ji in joins:
             self._join_tail_dict[str(ji)] = dag.pred[ji]
 
-        self._num_jobs_dict = {}
-        for ni in dag.nodes:
-            self._num_jobs_dict[str(ni)] = dag.nodes[ni]['num_trigger']
+        if dag.nodes[0].get('num_trigger') is not None:
+            self._num_jobs_dict = {}
+            for ni in dag.nodes:
+                self._num_jobs_dict[str(ni)] = dag.nodes[ni]['num_trigger']
 
     def get_num_tails(self) -> int:
         num_tails = 0
