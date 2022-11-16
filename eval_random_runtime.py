@@ -37,10 +37,10 @@ def option_parser():
 
 def export_alg12_run_time_log(dag: DAG, run_time: float, result_dir_path: str, dag_id: int) -> None:
     log = {
-        'number_of_nodes': dag.number_of_nodes(),
-        'number_of_timer_driven_nodes': len(dag.timer_nodes),
-        'number_of_join_nodes': len([ni for ni in dag.nodes if dag.nodes[ni]['is_join']]),
-        'run_time': run_time
+        'Number of nodes': dag.number_of_nodes(),
+        'Number of timer driven_nodes': len(dag.timer_nodes),
+        'Number of join nodes': len([ni for ni in dag.nodes if dag.nodes[ni]['is_join']]),
+        'Run time [ms]': run_time * 10**(3)
     }
     with open(f'{result_dir_path}/run_time/alg12/{dag_id}.yaml', 'w') as f:
         yaml.dump(log, f)
