@@ -3,6 +3,7 @@ import os
 import glob
 import yaml
 import time
+import tqdm
 
 from memory_profiler import memory_usage
 
@@ -138,7 +139,7 @@ def export_alg3_log(
 if __name__ == "__main__":
     dag_dir, dest_dir, metrics = option_parser()
     dag_paths = glob.glob(f"{dag_dir}/**/*.dot", recursive=True)
-    for i, dag_path in enumerate(dag_paths):
+    for i, dag_path in enumerate(tqdm(dag_paths)):
         dag = RandomDAGFormatter.read_dot(dag_path)
         RandomDAGFormatter.format(dag, i)
         dag.initialize(e2e_deadline_tightness=1.5)
