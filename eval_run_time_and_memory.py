@@ -3,7 +3,7 @@ import os
 import glob
 import yaml
 import time
-import tqdm
+from tqdm import tqdm
 
 from memory_profiler import memory_usage
 
