@@ -138,3 +138,5 @@ dmypy.json
 debug.py
 *.pdf
 random/
+alg12/
+alg3/

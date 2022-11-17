@@ -8,6 +8,7 @@ matplotlib
 seaborn
 tqdm
 memory_profiler
+scipy
 
 ###### Requirements with Version Specifiers ######`
 
