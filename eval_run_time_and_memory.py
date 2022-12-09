@@ -1,6 +1,7 @@
 import argparse
 import os
 import glob
+from typing import List, Set
 import yaml
 import time
 from tqdm import tqdm
@@ -12,6 +13,7 @@ from src.dag import DAG
 from src.dag_divider import DAGDivider
 from src.jld_analyzer import JLDAnalyzer
 from src.job_generator import JobGenerator
+from src.laxity_calculator import LaxityCalculator
 
 
 def option_parser():
@@ -44,10 +46,13 @@ def option_parser():
 class LogHelper:
 
     def __init__(self, dag: DAG) -> None:
+        self._tails = set()
         self._join_tail_dict = {}
         joins = [ni for ni in dag.nodes if dag.nodes[ni]['is_join']]
         for ji in joins:
-            self._join_tail_dict[str(ji)] = dag.pred[ji]
+            tails = dag.pred[ji]
+            self._tails |= set(tails)
+            self._join_tail_dict[str(ji)] = tails
 
         if dag.nodes[0].get('num_trigger') is not None:
             self._num_jobs_dict = {}
@@ -55,14 +60,14 @@ class LogHelper:
                 self._num_jobs_dict[str(ni)] = dag.nodes[ni]['num_trigger']
 
     def get_num_tails(self) -> int:
-        num_tails = 0
-        for tails in self._join_tail_dict.values():
-            num_tails += len(tails)
-
-        return num_tails
+        return len(self._tails)
 
     def get_num_node_pair_tail_join(self) -> int:
-        return self.get_num_tails()  # because tail nodes have only one succ
+        num_node_pair_tail_join = 0
+        for tails in self._join_tail_dict.values():
+            num_node_pair_tail_join += len(tails)
+
+        return num_node_pair_tail_join
 
     def get_num_jobs(self) -> int:
         sum = 0
@@ -80,6 +85,14 @@ class LogHelper:
                 num_job_pair_tail_join += num_join_jobs * num_tail_jobs
 
         return num_job_pair_tail_join
+
+    def num_prime_factor(self, target_num: int) -> int:
+        import sympy
+
+        return len(sympy.factorint(target_num))
+
+    def get_max_num_jobs(self) -> int:
+        return max(list(self._num_jobs_dict.values()))
 
 
 def export_alg12_log(
@@ -115,6 +128,8 @@ def export_alg3_log(
     dag_id: int
 ) -> None:
     hl = LogHelper(dag)
+    num_prime_factor = hl.num_prime_factor(dag.hp)
+    max_num_jobs = hl.get_max_num_jobs()
     log = {
         'Number of nodes': dag.number_of_nodes(),
         'Number of edges': dag.number_of_edges(),
@@ -125,6 +140,10 @@ def export_alg3_log(
         'Number of tail and join node pairs': hl.get_num_node_pair_tail_join(),
         'Number of pairs of tail node jobs and join node jobs': hl.get_num_job_pair_tail_join(),
         'Number of jobs': hl.get_num_jobs(),
+        'Number of HP prime factor': num_prime_factor,
+        'E*H^2': dag.number_of_edges() * num_prime_factor * num_prime_factor,
+        'Maximum number of jobs per node': max_num_jobs,
+        'E*J^2': dag.number_of_edges() * max_num_jobs * max_num_jobs,
         'HP': dag.hp
     }
     if metrics == 'run_time':
@@ -136,48 +155,73 @@ def export_alg3_log(
         yaml.dump(log, f)
 
 
+def export_alg123_laxity_log(
+    metrics: str,
+    measured_value: float,
+    result_dir_path: str,
+    dag_id: int
+) -> None:
+    log = {'Run time [ms]': measured_value * 10**(3)}
+    with open(f'{result_dir_path}/{metrics}/alg123_and_laxity/{dag_id}.yaml', 'w') as f:
+        yaml.dump(log, f)
+
+
+def main(dest_dir, metrics, i, dag_path):
+    dag = RandomDAGFormatter.read_dot(dag_path)
+    RandomDAGFormatter.format(dag, i)
+    dag.initialize(e2e_deadline_tightness=1.5)
+
+    # all_start_time = time.perf_counter()
+
+    # Algorithm 1 and 2
+    if metrics == 'run_time':
+        # start_time = time.perf_counter()
+        dag.sub_dags = DAGDivider.divide(dag)
+        # run_time = time.perf_counter() - start_time
+        # export_alg12_log(dag, metrics, run_time, dest_dir, i)
+    else:
+        # dag.sub_dags = DAGDivider.divide(dag)
+        max_memory_usage, dag.sub_dags = memory_usage(
+            (DAGDivider.divide, (dag,), {}),
+            interval=0.01,
+            include_children=True,
+            max_usage=True,
+            retval=True
+        )
+        export_alg12_log(dag, metrics, max_memory_usage, dest_dir, i)
+
+    # middle process
+    # dag.set_num_trigger()
+    # JobGenerator.generate(dag)
+
+    # Algorithm 3
+    # if metrics == 'run_time':
+    #     start_time = time.perf_counter()
+    #     dag.jld = JLDAnalyzer.analyze(dag, method='proposed', alpha=2.0)
+    #     run_time = time.perf_counter() - start_time
+    #     dag.reflect_jobs_in_dag()
+    #     export_alg3_log(dag, metrics, run_time, dest_dir, i)
+    # else:
+    #     # dag.jld = JLDAnalyzer.analyze(dag, 'proposed', 2.0)
+    #     max_memory_usage, dag.jld = memory_usage(
+    #         (JLDAnalyzer.analyze, (dag, 'proposed', 2.0), {}),
+    #         interval=0.01,
+    #         include_children=True,
+    #         max_usage=True,
+    #         retval=True
+    #     )
+    #     dag.reflect_jobs_in_dag()
+    #     export_alg3_log(dag, metrics, max_memory_usage, dest_dir, i)
+
+    # Calculate laxity
+    # LaxityCalculator.calculate(dag)
+
+    # all_run_time = time.perf_counter() - all_start_time
+    # export_alg123_laxity_log(all_run_time, dest_dir, i)
+
+
 if __name__ == "__main__":
     dag_dir, dest_dir, metrics = option_parser()
     dag_paths = glob.glob(f"{dag_dir}/**/*.dot", recursive=True)
     for i, dag_path in enumerate(tqdm(dag_paths)):
-        dag = RandomDAGFormatter.read_dot(dag_path)
-        RandomDAGFormatter.format(dag, i)
-        dag.initialize(e2e_deadline_tightness=1.5)
-
-        # Algorithm 1 and 2
-        if metrics == 'run_time':
-            start_time = time.perf_counter()
-            dag.sub_dags = DAGDivider.divide(dag)
-            run_time = time.perf_counter() - start_time
-            export_alg12_log(dag, metrics, run_time, dest_dir, i)
-        else:
-            max_memory_usage, dag.sub_dags = memory_usage(
-                (DAGDivider.divide, (dag,), {}),
-                interval=0.01,
-                include_children=True,
-                max_usage=True,
-                retval=True
-            )
-            export_alg12_log(dag, metrics, max_memory_usage, dest_dir, i)
-
-        # middle process
-        dag.set_num_trigger()
-        JobGenerator.generate(dag)
-
-        # Algorithm 3
-        if metrics == 'run_time':
-            start_time = time.perf_counter()
-            dag.jld = JLDAnalyzer.analyze(dag, method='proposed', alpha=2.0)
-            run_time = time.perf_counter() - start_time
-            dag.reflect_jobs_in_dag()
-            export_alg3_log(dag, metrics, run_time, dest_dir, i)
-        else:
-            max_memory_usage, dag.jld = memory_usage(
-                (JLDAnalyzer.analyze, (dag, 'proposed', 2.0), {}),
-                interval=0.01,
-                include_children=True,
-                max_usage=True,
-                retval=True
-            )
-            dag.reflect_jobs_in_dag()
-            export_alg3_log(dag, metrics, max_memory_usage, dest_dir, i)
+        main(dest_dir, metrics, i, dag_path)

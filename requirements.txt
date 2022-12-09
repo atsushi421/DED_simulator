@@ -9,6 +9,6 @@ seaborn
 tqdm
 memory_profiler
 scipy
+sympy
 
 ###### Requirements with Version Specifiers ######`
-
