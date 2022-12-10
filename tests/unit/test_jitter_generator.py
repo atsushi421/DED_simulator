@@ -1,4 +1,5 @@
 from src.jitter_generator import JitterGenerator
+import pandas as pd
 
 
 class TestJitterGenerator:
@@ -22,7 +23,7 @@ class TestJitterGenerator:
                             jitter_gen2._jitter_dict['node1']):
             assert one == two
 
-    def test_set_wcet(self, EG_divided, mocker):
+    def test_set_exec_no_percentile(self, EG_divided, mocker):
         mocker.patch('yaml.safe_load',
                      return_value={
                          'node_name_dict': {'node0': 0, 'node1': 1},
@@ -35,6 +36,24 @@ class TestJitterGenerator:
         jitter_gen.set_exec(EG_divided)
         assert EG_divided.nodes[0]['exec'] == 5
         assert EG_divided.nodes[1]['exec'] == 4
+
+    def test_set_exec_percentile(self, EG_divided, mocker):
+        node0_exec_list = [1, 2, 3, 4, 5]
+        node1_exec_list = [3, 4, 3, 4, 7]
+        mocker.patch('yaml.safe_load',
+                     return_value={
+                         'node_name_dict': {'node0': 0, 'node1': 1},
+                         'jitter': {
+                             'node0': node0_exec_list,
+                             'node1': node1_exec_list
+                         }
+                     })
+        jitter_gen = JitterGenerator(f'{__file__}', "1.0")
+
+        percentile = 0.9
+        jitter_gen.set_exec(EG_divided, percentile)
+        assert EG_divided.nodes[0]['exec'] == int(pd.Series(node0_exec_list).quantile(percentile))
+        assert EG_divided.nodes[1]['exec'] == int(pd.Series(node1_exec_list[:3]).quantile(percentile))
 
     def test_generate_exec_jitter(self, EG_calculated, mocker):
         mocker.patch('yaml.safe_load',

@@ -42,10 +42,11 @@ class JitterGenerator:
         for node_name, jitter_list in self._jitter_dict.items():
             num_trigger = \
                 dag.nodes[self._node_name_dict[node_name]]['num_trigger']
+            exec_list = jitter_list[:num_trigger]
             if percentile is not None:
-                exec = pd.Series(jitter_list[:num_trigger]).quantile(percentile)
+                exec = int(pd.Series(exec_list).quantile(percentile))
             else:
-                exec = max(jitter_list[:num_trigger])  # WCET
+                exec = max(exec_list)  # WCET
             dag.nodes[self._node_name_dict[node_name]]['exec'] = exec
 
         for sub_dag in dag.sub_dags:
