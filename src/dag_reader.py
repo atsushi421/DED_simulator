@@ -6,14 +6,14 @@ from src.dag import DAG
 
 
 class DAGReader:
-    _supported_ext = ['dot']
+    _supported_ext = ['.dot']
 
     @staticmethod
     def read(filepath: str) -> DAG:
         _, ext = os.path.splitext(filepath)
         DAGReader._validate(ext)
 
-        if ext == 'dot':
+        if ext == '.dot':
             return DAGReader._read_dot(filepath)
 
     @staticmethod
