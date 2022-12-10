@@ -1,6 +1,7 @@
 import random
 from typing import Optional
 
+import pandas as pd
 import yaml
 
 from src.dag import DAG
@@ -33,15 +34,19 @@ class JitterGenerator:
                 for j in jitter_list
             ]
 
-    def set_wcet(
+    def set_exec(
         self,
-        dag: DAG
+        dag: DAG,
+        percentile: Optional[float] = None
     ) -> None:
         for node_name, jitter_list in self._jitter_dict.items():
             num_trigger = \
                 dag.nodes[self._node_name_dict[node_name]]['num_trigger']
-            wcet = max(jitter_list[:num_trigger])
-            dag.nodes[self._node_name_dict[node_name]]['exec'] = wcet
+            if percentile is not None:
+                exec = pd.Series(jitter_list[:num_trigger]).quantile(percentile)
+            else:
+                exec = max(jitter_list[:num_trigger])  # WCET
+            dag.nodes[self._node_name_dict[node_name]]['exec'] = exec
 
         for sub_dag in dag.sub_dags:
             for node_i in sub_dag.nodes:

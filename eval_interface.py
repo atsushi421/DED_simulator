@@ -45,6 +45,11 @@ def option_parser():
         type=float
     )
     arg_parser.add_argument(
+        "-p", "--percentile",
+        required=False,
+        type=float
+    )
+    arg_parser.add_argument(
         "-j", "--jitter",
         nargs='+',
         required=False,
@@ -81,6 +86,7 @@ def option_parser():
         args.e2e_deadline_tightness,
         args.analyze_method,
         args.alpha,
+        args.percentile,
         args.jitter,
         args.num_cores,
         args.sched_algorithm,
@@ -103,16 +109,16 @@ def get_early_detection_df(
 
 if __name__ == "__main__":
     (dag_path, dest_dir, e2e_deadline_tightness,
-     analyze_method, alpha, jitter, num_cores,
+     analyze_method, alpha, percentile, jitter, num_cores,
      sched_algorithm, write_sched_log, calc_utilization) = option_parser()
 
-    dag = DAGReader._read_dot(dag_path)
+    dag = DAGReader.read(dag_path)
     dag.initialize(e2e_deadline_tightness)
     dag.sub_dags = DAGDivider.divide(dag)
     dag.set_num_trigger()
     if jitter:
         jitter_generator = JitterGenerator(*jitter)
-        jitter_generator.set_wcet(dag)
+        jitter_generator.set_exec(dag, percentile)
     JobGenerator.generate(dag)
 
     early_detection_df = get_early_detection_df(dag, alpha)

@@ -105,7 +105,7 @@ class TestScheduler:
             f'{os.path.dirname(__file__)}/../reference_system_exec_jitter_multi_8core_8192.yaml',
             "1.5"
         )
-        jitter_generator.set_wcet(RS)
+        jitter_generator.set_exec(RS)
         JobGenerator.generate(RS)
         RS.jld = JLDAnalyzer.analyze(RS, 'proposed', 1.2)
         RS.reflect_jobs_in_dag()

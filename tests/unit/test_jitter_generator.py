@@ -32,7 +32,7 @@ class TestJitterGenerator:
                          }
                      })
         jitter_gen = JitterGenerator(f'{__file__}', "1.0")
-        jitter_gen.set_wcet(EG_divided)
+        jitter_gen.set_exec(EG_divided)
         assert EG_divided.nodes[0]['exec'] == 5
         assert EG_divided.nodes[1]['exec'] == 4
 
