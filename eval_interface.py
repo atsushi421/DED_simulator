@@ -147,6 +147,7 @@ if __name__ == "__main__":
     )
     if jitter:
         file_name += f'jitterFactor={jitter[1]}_'
+        file_name += f'jitterSeed={jitter[2]}_'
     if calc_utilization:
         file_name += f'totalUtilization={total_utilization/num_cores}'
     logger = scheduler.create_logger()

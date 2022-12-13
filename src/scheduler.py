@@ -241,8 +241,7 @@ class Scheduler:
                     if ((self._current_time
                          - self._get_timestamp(finish_job, finish_jobs))
                             > dfc):
-                        print(
-                            f'[debug] ~dfc~ <{finish_job.node_i}, {finish_job.job_i}>')
+                        # print(f'[debug] ~dfc~ <{finish_job.node_i}, {finish_job.job_i}>')
                         return False
                     else:
                         break
